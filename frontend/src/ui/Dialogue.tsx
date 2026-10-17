@@ -15,7 +15,7 @@ export function Dialogue({ building, onLeave }: Props) {
   }, [onLeave]);
 
   return (
-    <div className="dialogue" role="dialog" aria-labelledby="dialogue-title">
+    <div className="panel dialogue" role="dialog" aria-labelledby="dialogue-title">
       <p className="dialogue__eyebrow">{building.keeper}</p>
       <h2 id="dialogue-title" className="dialogue__title">
         {building.name}

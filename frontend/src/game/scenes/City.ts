@@ -1,7 +1,7 @@
 import Phaser from "phaser";
-import { GENERATED, frameRect, type PlacedSprite } from "../assets";
+import { GENERATED, PLAYER, frameRect, type Facing, type PlacedSprite } from "../assets";
 import { BUILDINGS, BUILDINGS_BY_ID, type Building, type BuildingId } from "../buildings";
-import { PLAYER_START, WORLD_H, WORLD_W, buildDecor, route } from "../cityMap";
+import { GENERATED_DECOR, LAMP_LIGHTS, PLAYER_START, WORLD_H, WORLD_W, buildDecor, route } from "../cityMap";
 import { CURSORS } from "../cursors";
 import { EventBus } from "../EventBus";
 import {
@@ -16,20 +16,25 @@ import {
   addWaterShimmer,
   sway,
 } from "../fx/underwater";
-import { CX, CY, polar, type Point } from "../geometry";
+import { CX, CY, GATE, type Point } from "../geometry";
 import { seededRandom } from "../random";
 
 const WALK_SPEED = 140; // px per second
 const DRAG_THRESHOLD = 6; // px of pointer travel before a press becomes a pan
-const ZOOMS = [1, 2, 3] as const; // whole steps keep pixel art crisp
+const CAMERA_LERP = 0.06; // how quickly the camera catches up with the walker
+const ZOOMS = [1, 2, 3, 4] as const; // whole steps keep pixel art crisp
 const PLATE_FONT = '"Silkscreen", monospace';
+const SHADOW = { x: 4, y: 3, color: 0x0a1a22, alpha: 0.28 } as const;
 
 /** The city: ground, decor, buildings you can walk into, and the player. */
 export class City extends Phaser.Scene {
   private player!: Phaser.GameObjects.Container;
-  private playerSprite!: Phaser.GameObjects.Image;
+  private playerSprite!: Phaser.GameObjects.Sprite;
+  private facing: Facing = "down";
   private walk?: Phaser.Tweens.TweenChain;
   private inside: BuildingId | null = null;
+  private hovered: BuildingId | null = null;
+  private lastAnchor = "";
   private buildingSprites = new Map<BuildingId, Phaser.GameObjects.Image[]>();
   private plates = new Map<BuildingId, { box: Phaser.GameObjects.Graphics; text: Phaser.GameObjects.Text }>();
   private press?: { x: number; y: number; scrollX: number; scrollY: number };
@@ -55,22 +60,24 @@ export class City extends Phaser.Scene {
 
     addColorGrade(this);
     addLightBeams(this);
+    const reef = BUILDINGS_BY_ID.black_reef.sprites[0];
     addParticles(this, [
-      { x: BUILDINGS_BY_ID.black_reef.door.x, y: BUILDINGS_BY_ID.black_reef.door.y - 110 },
-      polar(1300, 135), // the wreck in the south-west wilds
-      { x: CX - 120, y: CY + 130 }, // the rostrum
-      ...[45, 135, -45, -135].map((deg) => polar(283, deg)), // the inner canal
+      { x: reef.x, y: reef.y - 90 },
+      { x: GATE.x, y: GATE.y }, // the Sea Gate
+      { x: 170, y: WORLD_H - 30 }, // the wreck below the wall
     ]);
     this.updaters.push(addFish(this));
     for (const [id, color, size, strength] of [
-      ["council", 0xffe2a0, 260, 0.2],
-      ["bank", 0xbaf6ff, 260, 0.18],
-      ["harbor", 0xffc890, 160, 0.12],
-      ["black_reef", 0x9b6bff, 180, 0.18],
+      ["council", 0xffe2a0, 200, 0.12],
+      ["bank", 0xbaf6ff, 200, 0.12],
+      ["harbor", 0xffc890, 130, 0.1],
+      ["black_reef", 0x9b6bff, 170, 0.3],
     ] as const) {
       const s = BUILDINGS_BY_ID[id].sprites[0];
       addGlow(this, s.x, s.y - frameRect(s)[3] * 0.6, color, size, strength);
     }
+    for (const light of LAMP_LIGHTS) addGlow(this, light.x, light.y, 0x7ff6ee, 36, 0.35);
+    addGlow(this, GATE.x, GATE.y, 0x7ff6ee, 120, 0.3);
 
     this.fitDepthFade = addDepthFade(this);
     this.setupCamera();
@@ -83,14 +90,22 @@ export class City extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     for (const step of this.updaters) step(time, delta);
+    if (this.hovered) this.emitHover(this.hovered);
     this.player.setDepth(DEPTH.objects + this.player.y);
-    const walking = this.walk?.isPlaying() ?? false;
-    this.playerSprite.y = walking ? -Math.abs(Math.sin(time / 90)) * 1.5 : 0;
   }
 
   // --- World ----------------------------------------------------------------------------------
 
-  private placeSprite(placed: PlacedSprite): Phaser.GameObjects.Image {
+  /** A sprite stood on its foot. Solid things also cast a hard pixel shadow down and to the right. */
+  private placeSprite(placed: PlacedSprite, shadow = true): Phaser.GameObjects.Image {
+    if (shadow) {
+      this.add
+        .image(placed.x + SHADOW.x, placed.y + SHADOW.y, placed.sheet, placed.frame)
+        .setOrigin(0.5, 1)
+        .setTintFill(SHADOW.color)
+        .setAlpha(SHADOW.alpha)
+        .setDepth(DEPTH.shadows);
+    }
     return this.add
       .image(placed.x, placed.y, placed.sheet, placed.frame)
       .setOrigin(0.5, 1)
@@ -99,8 +114,11 @@ export class City extends Phaser.Scene {
 
   private createDecor(): void {
     const rand = seededRandom(17);
+    for (const decor of GENERATED_DECOR) {
+      this.add.image(decor.x, decor.y, decor.key).setOrigin(0.5, 1).setDepth(DEPTH.objects + decor.y);
+    }
     for (const decor of buildDecor()) {
-      const sprite = this.placeSprite(decor);
+      const sprite = this.placeSprite(decor, !decor.sway);
       if (decor.sway) sway(this, sprite, rand);
     }
   }
@@ -126,10 +144,10 @@ export class City extends Phaser.Scene {
   private createPlate(building: Building): void {
     const main = building.sprites.reduce((a, b) => (frameRect(b)[3] > frameRect(a)[3] ? b : a));
     const text = this.add
-      .text(main.x, main.y - 8, building.name.toUpperCase(), {
+      .text(main.x, main.y - 4, building.name.toUpperCase(), {
         fontFamily: PLATE_FONT,
         fontSize: "8px",
-        color: "#f5e6c4",
+        color: "#f2e6c8",
       })
       .setOrigin(0.5, 0.5)
       .setDepth(DEPTH.plates + 1);
@@ -140,17 +158,22 @@ export class City extends Phaser.Scene {
 
   private drawPlate(id: BuildingId, active: boolean): void {
     const { box, text } = this.plates.get(id)!;
-    const w = Math.ceil(text.width) + 8;
-    const h = 12;
+    const w = Math.ceil(text.width) + 10;
+    const h = 13;
     const x = Math.round(text.x - w / 2);
     const y = Math.round(text.y - h / 2);
+    // A navy plaque with a gold rule and a hard drop shadow, like the HUD panels.
     box.clear();
-    box.fillStyle(active ? 0x3a2a10 : 0x06283a, 0.92).fillRect(x, y, w, h);
-    box.lineStyle(1, active ? 0xf0b43c : 0x6fd8d8, 1).strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-    text.setColor(active ? "#ffe6a0" : "#eafffb");
+    box.fillStyle(0x07141c, 0.55).fillRect(x + 1, y + 2, w, h);
+    box.fillStyle(0x1a2a33, 1).fillRect(x - 1, y - 1, w + 2, h + 2);
+    box.fillStyle(active ? 0xd9a84c : 0x10293a, 1).fillRect(x, y, w, h);
+    box.lineStyle(1, active ? 0xfff0b0 : 0xb8954a, 1).strokeRect(x + 1.5, y + 1.5, w - 3, h - 3);
+    text.setColor(active ? "#1a2a33" : "#f2e6c8");
   }
 
   private hover(id: BuildingId | null): void {
+    this.hovered = id;
+    this.lastAnchor = "";
     for (const [bid, sprites] of this.buildingSprites) {
       const active = bid === id;
       this.drawPlate(bid, active);
@@ -163,15 +186,41 @@ export class City extends Phaser.Scene {
         }
       }
     }
-    EventBus.emit("building-hover", id);
+    if (id) this.emitHover(id);
+    else EventBus.emit("building-hover", null);
+  }
+
+  /** Tell React where the hovered building's top-right corner is on screen, when it moves. */
+  private emitHover(id: BuildingId): void {
+    const cam = this.cameras.main;
+    const sprites = BUILDINGS_BY_ID[id].sprites;
+    const right = Math.max(...sprites.map((s) => s.x + frameRect(s)[2] / 2));
+    const top = Math.min(...sprites.map((s) => s.y - frameRect(s)[3]));
+    const anchor = {
+      x: Math.round((right - cam.worldView.x) * cam.zoom),
+      y: Math.round((top - cam.worldView.y) * cam.zoom),
+    };
+    const key = `${id}:${anchor.x},${anchor.y}`;
+    if (key === this.lastAnchor) return;
+    this.lastAnchor = key;
+    EventBus.emit("building-hover", id, anchor);
   }
 
   // --- Player ---------------------------------------------------------------------------------
 
   private createPlayer(): void {
-    const shadow = this.add.ellipse(0, 0, 12, 4, 0x000000, 0.25);
-    this.playerSprite = this.add.image(0, 0, GENERATED.player).setOrigin(0.5, 1);
-    this.player = this.add.container(PLAYER_START.x, PLAYER_START.y, [shadow, this.playerSprite]);
+    // The sheet's frames carry their own shadow, so the foot is a few pixels above the bottom.
+    this.playerSprite = this.add.sprite(0, 0, PLAYER.idle.key).setOrigin(0.5, PLAYER.footY / PLAYER.frame);
+    this.playerSprite.play("idle-down");
+    this.player = this.add.container(PLAYER_START.x, PLAYER_START.y, [this.playerSprite]);
+  }
+
+  /** Face the way the next leg goes, and walk (or stand) that way. */
+  private face(dx: number, dy: number, walking: boolean): void {
+    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+      this.facing = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : dy < 0 ? "up" : "down";
+    }
+    this.playerSprite.play(`${walking ? "walk" : "idle"}-${this.facing}`, true);
   }
 
   private goTo(building: Building): void {
@@ -181,6 +230,8 @@ export class City extends Phaser.Scene {
 
   private walkTo(dest: Point, onArrive?: () => void): void {
     this.walk?.stop();
+    // Keep the walker in view; dragging the map lets go (see setupInput).
+    this.cameras.main.startFollow(this.player, true, CAMERA_LERP, CAMERA_LERP);
     let from: Point = { x: this.player.x, y: this.player.y };
     const legs = route(from, dest).map((point) => {
       const leg = {
@@ -188,18 +239,24 @@ export class City extends Phaser.Scene {
         y: point.y,
         duration: (Phaser.Math.Distance.BetweenPoints(from, point) / WALK_SPEED) * 1000,
         ease: "Linear",
-        onStart: () => {
-          if (Math.abs(point.x - this.player.x) > 1) this.playerSprite.setFlipX(point.x < this.player.x);
-        },
+        onStart: () => this.face(point.x - this.player.x, point.y - this.player.y, true),
       };
       from = point;
       return leg;
     });
     if (!legs.length) {
+      this.face(0, 0, false);
       onArrive?.();
       return;
     }
-    this.walk = this.tweens.chain({ targets: this.player, tweens: legs, onComplete: () => onArrive?.() });
+    this.walk = this.tweens.chain({
+      targets: this.player,
+      tweens: legs,
+      onComplete: () => {
+        this.face(0, 0, false);
+        onArrive?.();
+      },
+    });
   }
 
   private enterBuilding(id: BuildingId): void {
@@ -221,19 +278,20 @@ export class City extends Phaser.Scene {
 
   private setupCamera(): void {
     const cam = this.cameras.main;
-    cam.setBounds(0, 0, WORLD_W, WORLD_H).setRoundPixels(true).setBackgroundColor("#0a2a6a");
+    cam.setBounds(0, 0, WORLD_W, WORLD_H).setRoundPixels(true).setBackgroundColor("#0d2431");
     // ?overview shows the whole map at once (for layout checks; not pixel-perfect).
     const overview = new URLSearchParams(window.location.search).has("overview");
-    const minZoom = () => Math.ceil(Math.max(this.scale.width, this.scale.height) / WORLD_W);
+    // The smallest whole zoom whose view still fits inside the city, so no edge ever shows.
+    const minZoom = () => Math.ceil(Math.max(this.scale.width / WORLD_W, this.scale.height / WORLD_H));
     const fit = () => {
       if (overview) cam.setBounds(-WORLD_W, -WORLD_H, WORLD_W * 3, WORLD_H * 3);
-      const zoom = overview ? Math.min(this.scale.width, this.scale.height) / WORLD_W : 0;
-      cam.setZoom(zoom || Math.max(minZoom(), this.scale.width >= 900 ? 2 : 1));
-      if (overview) cam.centerOn(CX, CY);
+      const zoom = overview ? Math.min(this.scale.width / WORLD_W, this.scale.height / WORLD_H) : 0;
+      cam.setZoom(zoom || Math.max(minZoom(), 2));
+      if (overview) cam.centerOn(CX, WORLD_H / 2);
       this.fitDepthFade();
     };
     fit();
-    cam.centerOn(CX, CY + 40);
+    if (!overview) cam.centerOn(CX, CY + 70);
     this.scale.on(Phaser.Scale.Events.RESIZE, fit);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off(Phaser.Scale.Events.RESIZE, fit));
 
@@ -267,7 +325,10 @@ export class City extends Phaser.Scene {
       const dx = p.x - this.press.x;
       const dy = p.y - this.press.y;
       if (!this.dragging && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-      if (!this.dragging) this.input.setDefaultCursor(CURSORS.grab);
+      if (!this.dragging) {
+        this.input.setDefaultCursor(CURSORS.grab);
+        cam.stopFollow();
+      }
       this.dragging = true;
       cam.setScroll(this.press.scrollX - dx / cam.zoom, this.press.scrollY - dy / cam.zoom);
     });

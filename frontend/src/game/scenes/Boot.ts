@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { FRAMES, GENERATED, SHEETS, TILE, type Rect } from "../assets";
+import { FRAMES, GENERATED, PLAYER, SHEETS, type Rect } from "../assets";
 import { drawGlints, drawGround } from "../ground";
 import { seededRandom } from "../random";
 
@@ -10,9 +10,9 @@ export class Boot extends Phaser.Scene {
   }
 
   preload(): void {
-    this.load.spritesheet("terrain", SHEETS.terrain, { frameWidth: TILE, frameHeight: TILE });
-    for (const [key, url] of Object.entries(SHEETS)) {
-      if (key !== "terrain") this.load.image(key, url);
+    for (const [key, url] of Object.entries(SHEETS)) this.load.image(key, url);
+    for (const sheet of [PLAYER.walk, PLAYER.idle]) {
+      this.load.spritesheet(sheet.key, sheet.url, { frameWidth: PLAYER.frame, frameHeight: PLAYER.frame });
     }
   }
 
@@ -23,7 +23,9 @@ export class Boot extends Phaser.Scene {
         texture.add(name, 0, x, y, w, h);
       }
     }
-    drawPlayer(this);
+    createPlayerAnimations(this);
+    drawLamp(this);
+    drawKelpBed(this);
     drawFish(this);
     drawBeam(this);
     drawGlow(this);
@@ -54,44 +56,83 @@ function pixelTexture(scene: Phaser.Scene, key: string, rows: string[], palette:
   texture.refresh();
 }
 
-/**
- * Placeholder diver until the character pack arrives: 12 x 20, facing right.
- * Each string is a row; letters index the palette, "." is transparent.
- */
-function drawPlayer(scene: Phaser.Scene): void {
+/** "walk-down", "idle-left" and so on: one looping animation per sheet row. */
+function createPlayerAnimations(scene: Phaser.Scene): void {
+  PLAYER.facings.forEach((facing, row) => {
+    for (const [name, sheet, rate] of [
+      ["walk", PLAYER.walk, 10],
+      ["idle", PLAYER.idle, 6],
+    ] as const) {
+      scene.anims.create({
+        key: `${name}-${facing}`,
+        frames: scene.anims.generateFrameNumbers(sheet.key, {
+          start: row * sheet.frames,
+          end: row * sheet.frames + sheet.frames - 1,
+        }),
+        frameRate: rate,
+        repeat: -1,
+      });
+    }
+  });
+}
+
+/** A marble lamp post with a glowing sea-glass lantern, 7 x 24. */
+function drawLamp(scene: Phaser.Scene): void {
   const rows = [
-    "....hhhh....",
-    "...hhhhhh...",
-    "...hssssh...",
-    "...sseses...",
-    "...ssssss...",
-    "....ssss....",
-    "...gtttg....",
-    "..ttttttt...",
-    "..tttgttts..",
-    "..stttttts..",
-    "..s.ttttt...",
-    "....bbbbb...",
-    "....ttttt...",
-    "....tt.tt...",
-    "....tt.tt...",
-    "....ll.ll...",
-    "....ll.ll...",
-    "....ll.ll...",
-    "...ooo.ooo..",
-    "............",
+    "...o...",
+    "..ogo..",
+    ".oLLLo.",
+    ".oLlLo.",
+    ".oLllo.",
+    ".oLLLo.",
+    "..ogo..",
+    "...o...",
+    "..omo..",
+    "..omo..",
+    "..omo..",
+    "..omo..",
+    "..omo..",
+    "..omo..",
+    "..omo..",
+    "..omo..",
+    "..omo..",
+    "..omo..",
+    "..omo..",
+    ".ommmo.",
+    "ommmmmo",
+    "osssss.",
+    "ooooooo",
+    "..sss..",
   ];
   const palette: Record<string, string> = {
-    h: "#2a1b14", // hair
-    s: "#c98a5a", // skin
-    e: "#1a1010", // eyes
-    t: "#2bb3c0", // tunic
-    g: "#f0b43c", // gold trim
-    b: "#8a5a2b", // belt
-    l: "#3b2a20", // legs
-    o: "#5b3a22", // sandals
+    o: "#1a2a33", // outline
+    g: "#d9a84c", // gold cap
+    L: "#5fe8e0", // lantern glass
+    l: "#d8fffa", // lantern flame
+    m: "#e9dcba", // marble
+    s: "#00000055", // shadow
   };
-  pixelTexture(scene, GENERATED.player, rows, palette);
+  pixelTexture(scene, GENERATED.lamp, rows, palette);
+}
+
+/** One fenced bed of the kelp farm: dark silt in a timber frame, 128 x 12. */
+function drawKelpBed(scene: Phaser.Scene): void {
+  const w = 128;
+  const h = 12;
+  const { texture, ctx } = canvas(scene, GENERATED.kelpBed, w, h);
+  ctx.fillStyle = "#1a2a33";
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "#8a5a2b";
+  ctx.fillRect(1, 1, w - 2, h - 2);
+  ctx.fillStyle = "#b07a3e";
+  ctx.fillRect(1, 1, w - 2, 1);
+  ctx.fillStyle = "#2f3b2a";
+  ctx.fillRect(3, 3, w - 6, h - 6);
+  ctx.fillStyle = "#3d4d33";
+  for (let x = 4; x < w - 4; x += 3) ctx.fillRect(x, 4 + (x % 2), 1, 1);
+  ctx.fillStyle = "#5a3a1e";
+  for (let x = 0; x < w; x += 16) ctx.fillRect(x, 0, 2, h);
+  texture.refresh();
 }
 
 function drawFish(scene: Phaser.Scene): void {
@@ -140,10 +181,10 @@ function drawDepth(scene: Phaser.Scene): void {
   const h = 256;
   const { texture, ctx } = canvas(scene, GENERATED.depth, 4, h);
   const g = ctx.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, "rgba(14, 40, 140, 0.55)");
-  g.addColorStop(0.35, "rgba(20, 70, 170, 0.18)");
-  g.addColorStop(0.6, "rgba(20, 90, 170, 0)");
-  g.addColorStop(1, "rgba(60, 230, 220, 0.10)");
+  g.addColorStop(0, "rgba(8, 30, 60, 0.32)");
+  g.addColorStop(0.25, "rgba(10, 50, 80, 0.08)");
+  g.addColorStop(0.5, "rgba(10, 50, 80, 0)");
+  g.addColorStop(1, "rgba(4, 18, 28, 0.18)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 4, h);
   texture.refresh();

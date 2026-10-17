@@ -37,8 +37,8 @@ const isWebGL = (scene: Phaser.Scene) => scene.game.renderer.type === Phaser.WEB
 /** Two copies of the caustics web drifting in different directions over the seabed. */
 export function addCaustics(scene: Phaser.Scene): (delta: number) => void {
   const layers = [
-    { alpha: 0.13, scale: 1.5, vx: 6, vy: 3 },
-    { alpha: 0.09, scale: 2.5, vx: -4, vy: 5 },
+    { alpha: 0.07, scale: 1.5, vx: 6, vy: 3 },
+    { alpha: 0.05, scale: 2.5, vx: -4, vy: 5 },
   ].map((cfg) => ({
     ...cfg,
     sprite: scene.add
@@ -59,23 +59,18 @@ export function addCaustics(scene: Phaser.Scene): (delta: number) => void {
 }
 
 /**
- * The turquoise wash over the whole city: a light aqua multiply that keeps colours bright, a
- * teal lift so shadows read as water rather than black, and a soft vignette.
+ * Just enough water over the city to tie it together: a faint teal lift, so the warm stone keeps
+ * its colour, and a soft vignette.
  */
 export function addColorGrade(scene: Phaser.Scene): void {
   scene.add
-    .rectangle(0, 0, WORLD_W, WORLD_H, 0xa6ecf2)
-    .setOrigin(0)
-    .setBlendMode(Phaser.BlendModes.MULTIPLY)
-    .setDepth(DEPTH.tint);
-  scene.add
     .rectangle(0, 0, WORLD_W, WORLD_H, 0x0b5f78)
     .setOrigin(0)
-    .setAlpha(0.16)
+    .setAlpha(0.06)
     .setBlendMode(Phaser.BlendModes.ADD)
     .setDepth(DEPTH.tint);
   if (isWebGL(scene)) {
-    scene.cameras.main.postFX.addVignette(0.5, 0.5, 0.95, 0.22);
+    scene.cameras.main.postFX.addVignette(0.5, 0.5, 0.9, 0.18);
   }
 }
 
@@ -128,7 +123,7 @@ export function addDepthFade(scene: Phaser.Scene): () => void {
 /** Shafts of light slanting down from the surface, slowly breathing. */
 export function addLightBeams(scene: Phaser.Scene, seed = 3): void {
   const rand = seededRandom(seed);
-  for (let i = 0; i < Math.round(6 * Math.sqrt(AREA)); i++) {
+  for (let i = 0; i < Math.round(5 * Math.sqrt(AREA)); i++) {
     const beam = scene.add
       .image(60 + rand() * (WORLD_W - 120), -40, GENERATED.beam)
       .setOrigin(0.5, 0)
@@ -138,7 +133,7 @@ export function addLightBeams(scene: Phaser.Scene, seed = 3): void {
       .setTint(0xbaf6ff)
       .setBlendMode(Phaser.BlendModes.ADD)
       .setDepth(DEPTH.beams);
-    const peak = 0.12 + rand() * 0.1;
+    const peak = 0.05 + rand() * 0.05;
     scene.tweens.add({
       targets: beam,
       alpha: { from: peak * 0.3, to: peak },

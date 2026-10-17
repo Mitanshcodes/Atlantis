@@ -9,8 +9,11 @@ import type { BuildingId } from "./buildings";
 export interface GameEvents {
   /** The city scene finished loading and is on screen. */
   "city-ready": [];
-  /** The pointer moved onto a building (or off all of them: null). */
-  "building-hover": [id: BuildingId | null];
+  /**
+   * The pointer moved onto a building (or off all of them: null). ``anchor`` is the building's
+   * top-right corner in screen pixels, re-sent whenever the camera moves it.
+   */
+  "building-hover": [id: BuildingId | null, anchor?: { x: number; y: number }];
   /** The player reached a building's door and went in. */
   "building-entered": [id: BuildingId];
   /** React closed the building's panel; the player steps back outside. */

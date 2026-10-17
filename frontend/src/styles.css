@@ -1,19 +1,25 @@
-/* Palette from the art kit ("One City, One Hand"). */
+/* Palette shared with the city floor (src/game/ground.ts) and the in-world name plates. */
 :root {
-  --abyss: #061a26;
-  --deep: #0c2a3a;
-  --water: #1b6f8a;
-  --sea: #2bb3c0;
-  --foam: #7fe3e0;
-  --marble: #f2ead8;
-  --sand: #e3cfa4;
-  --gold: #f0b43c;
+  --abyss: #07141c;
+  --ink: #1a2a33;
+  --navy: #10293a;
+  --navy-light: #173a4f;
+  --sea: #29a8b0;
+  --foam: #9ee8df;
+  --marble: #f2e6c8;
+  --marble-dim: #b9b29c;
+  --sand: #d8ac5e;
+  --gold: #d9a84c;
+  --gold-light: #f2cd6e;
   --gold-dark: #8a6a2a;
   --coral: #e8624a;
-  --kelp: #3c8a4e;
+  --kelp: #7c9f57;
 
   --font-title: "Cinzel", Georgia, serif;
   --font-pixel: "Pixelify Sans", ui-monospace, monospace;
+  --font-plate: "Silkscreen", ui-monospace, monospace;
+
+  --gap: 16px;
 }
 
 * {
@@ -25,10 +31,17 @@ body,
 #root {
   margin: 0;
   height: 100%;
-  background: #0a2a6a;
+  background: #0d2431;
   color: var(--marble);
   font-family: var(--font-pixel);
+  font-variant-ligatures: none;
   overflow: hidden;
+}
+
+.num {
+  font-family: var(--font-title);
+  font-weight: 700;
+  color: var(--gold-light);
 }
 
 .app {
@@ -48,7 +61,406 @@ body,
   image-rendering: pixelated;
 }
 
-/* --- Panels -------------------------------------------------------------------------------- */
+/* --- Panels: navy plate, gold rule, dark outline and a hard pixel shadow ------------------- */
+
+.panel {
+  background: rgba(16, 41, 58, 0.96);
+  border: 2px solid var(--gold-dark);
+  box-shadow:
+    inset 0 0 0 1px var(--abyss),
+    0 0 0 2px var(--ink),
+    4px 4px 0 2px rgba(7, 20, 28, 0.55);
+}
+
+.chip {
+  display: inline-block;
+  padding: 7px 14px;
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--marble);
+  background: rgba(16, 41, 58, 0.96);
+  border: 2px solid var(--gold-dark);
+  box-shadow:
+    0 0 0 2px var(--ink),
+    4px 4px 0 2px rgba(7, 20, 28, 0.55);
+}
+
+.tag {
+  display: inline-block;
+  padding: 3px 9px;
+  font-size: 14px;
+  border: 2px solid currentColor;
+}
+
+.tag--free {
+  color: var(--foam);
+  background: rgba(41, 168, 176, 0.18);
+}
+
+.tag--tide {
+  color: var(--gold-light);
+  background: rgba(217, 168, 76, 0.16);
+}
+
+/* --- HUD ---------------------------------------------------------------------------------- */
+
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hud > * {
+  pointer-events: auto;
+}
+
+.hud__eyebrow {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+/* Season and tides, top left. */
+
+.hud__season {
+  position: absolute;
+  top: var(--gap);
+  left: var(--gap);
+  width: 300px;
+  padding: 14px 18px 16px;
+}
+
+.hud__season-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hud__season-name {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-shadow: 2px 2px 0 var(--abyss);
+}
+
+.hud__season-count {
+  font-size: 14px;
+  color: var(--marble-dim);
+}
+
+.hud__year {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 10px 0 12px;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-title);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6f8794;
+}
+
+.hud__year-bar {
+  display: block;
+  height: 4px;
+  margin-bottom: 5px;
+  background: #24465a;
+}
+
+.hud__year .is-past {
+  color: var(--gold-dark);
+}
+
+.hud__year .is-past .hud__year-bar {
+  background: var(--gold-dark);
+}
+
+.hud__year .is-now {
+  color: var(--gold-light);
+}
+
+.hud__year .is-now .hud__year-bar {
+  background: var(--gold-light);
+}
+
+.hud__tides {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tide {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--sea);
+  background: rgba(41, 168, 176, 0.15);
+}
+
+.tide.is-spent {
+  border-color: #3b5666;
+  background: transparent;
+}
+
+.tide.is-now {
+  border-color: var(--gold-light);
+  background: var(--gold);
+}
+
+.hud__tides-left {
+  margin-left: 8px;
+  font-size: 16px;
+}
+
+.hud__hint {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--marble-dim);
+}
+
+.hud__warn {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--coral);
+}
+
+/* Money, top right. */
+
+.hud__top-right {
+  position: absolute;
+  top: var(--gap);
+  right: var(--gap);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.hud__top-right > * {
+  pointer-events: auto;
+}
+
+.hud__stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin: 0;
+}
+
+.stat {
+  min-width: 128px;
+  padding: 8px 14px 9px;
+}
+
+.stat dt {
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--marble-dim);
+}
+
+.stat dd {
+  margin: 2px 0 0;
+  font-family: var(--font-title);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--marble);
+}
+
+.stat--debt {
+  border-color: var(--coral);
+}
+
+.stat--debt dt,
+.stat--debt dd {
+  color: var(--coral);
+}
+
+.stat--standing {
+  border-color: var(--sea);
+}
+
+/* Word in the city, bottom left. */
+
+.hud__news {
+  position: absolute;
+  left: var(--gap);
+  bottom: var(--gap);
+  width: min(400px, calc(100% - 2 * var(--gap)));
+  padding: 12px 18px 14px;
+}
+
+.hud__news-line {
+  margin: 6px 0 0;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+/* Passage, bottom right. */
+
+.hud__passage {
+  position: absolute;
+  right: var(--gap);
+  bottom: var(--gap);
+  width: 420px;
+  padding: 14px 18px 14px;
+  border-color: var(--gold);
+}
+
+.hud__passage-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.hud__passage-price {
+  font-family: var(--font-title);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.meter {
+  display: flex;
+  height: 14px;
+  margin: 10px 0 10px;
+  background: var(--abyss);
+  border: 2px solid #2b4a5c;
+}
+
+.meter__coin {
+  background: var(--gold);
+  box-shadow: inset 0 2px 0 var(--gold-light);
+}
+
+.meter__paper {
+  background: repeating-linear-gradient(90deg, #c9c2a8 0 3px, #6f7d80 3px 5px);
+}
+
+.hud__passage-legend {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0;
+}
+
+.hud__passage-legend dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--marble-dim);
+}
+
+.hud__passage-legend dd {
+  margin: 2px 0 0;
+  font-family: var(--font-title);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.key {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+}
+
+.key--coin {
+  background: var(--gold);
+}
+
+.key--paper {
+  background: repeating-linear-gradient(90deg, #c9c2a8 0 2px, #6f7d80 2px 3px);
+}
+
+.key--debt {
+  background: var(--coral);
+}
+
+.hud__passage-paid {
+  margin: 6px 0 0;
+  font-size: 17px;
+  color: var(--foam);
+}
+
+/* Narrow screens: keep the season and the money; the rest folds away. */
+@media (max-width: 900px) {
+  .hud__news {
+    display: none;
+  }
+
+  .hud__passage {
+    left: var(--gap);
+    width: auto;
+  }
+
+  .hud__season {
+    width: 240px;
+  }
+
+  .hud__hint {
+    display: none;
+  }
+
+  .stat {
+    min-width: 0;
+  }
+}
+
+/* --- The card beside a hovered building ---------------------------------------------------- */
+
+.building-card {
+  position: absolute;
+  padding: 12px 16px 14px;
+  border-color: var(--gold);
+  pointer-events: none;
+}
+
+.building-card__name {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold-light);
+}
+
+.building-card__keeper {
+  margin: 2px 0 10px;
+  font-size: 15px;
+  color: var(--marble-dim);
+}
+
+.building-card__hint {
+  margin: 10px 0 0;
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--marble);
+}
+
+/* --- The keeper's greeting inside a building ----------------------------------------------- */
 
 .dialogue {
   position: absolute;
@@ -57,11 +469,7 @@ body,
   transform: translateX(-50%);
   width: min(560px, calc(100% - 32px));
   padding: 16px 20px 18px;
-  background: rgba(6, 26, 38, 0.94);
-  border: 2px solid var(--gold);
-  box-shadow:
-    0 0 0 4px var(--abyss),
-    0 0 0 6px var(--gold-dark);
+  border-color: var(--gold);
 }
 
 .dialogue__eyebrow {
@@ -86,18 +494,24 @@ body,
 }
 
 .button {
-  font: inherit;
-  font-size: 15px;
-  padding: 6px 18px;
-  color: var(--abyss);
+  font-family: var(--font-title);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 8px 22px;
+  color: var(--ink);
   background: var(--gold);
-  border: 2px solid var(--abyss);
-  box-shadow: 0 0 0 2px var(--gold-dark);
+  border: 2px solid var(--ink);
+  box-shadow:
+    inset 0 2px 0 var(--gold-light),
+    inset 0 -2px 0 var(--gold-dark),
+    0 0 0 2px var(--gold-dark);
   cursor: var(--cursor-hover, pointer);
 }
 
 .button:hover {
-  background: #ffd36a;
+  background: var(--gold-light);
 }
 
 .button:focus-visible {

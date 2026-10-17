@@ -2,16 +2,14 @@
  * Every texture the city uses, and the named frames cut from each sheet.
  *
  * Sheets live in public/assets/city/. Rects are [x, y, width, height] in sheet pixels, measured
- * from the packs (credits in CREDITS.md). Generated textures (player placeholder, fish, light)
- * are drawn in Boot and listed under GENERATED.
+ * from the packs (credits in CREDITS.md). Generated textures (fish, light, lamps) are drawn in
+ * Boot and listed under GENERATED.
  */
-
-export const TILE = 16;
 
 export type Rect = readonly [number, number, number, number];
 
 export const SHEETS = {
-  terrain: "assets/city/greek/terrain.png",
+  temple: "assets/city/craftpix/exterior_objects.png",
   greek: "assets/city/greek/buildings.png",
   vegetation: "assets/city/underwater/vegetation.png",
   ruins: "assets/city/underwater/temple_ruins.png",
@@ -22,17 +20,36 @@ export const SHEETS = {
 
 export type SheetKey = keyof typeof SHEETS;
 
-/** Terrain tiles, by index in the 17-column terrain sheet (row * 17 + column). */
-export const TERRAIN = {
-  sand: 0,
-  sandVariants: [1, 2, 3, 51, 119, 120, 121, 137, 138],
-  paverLight: 17,
-  paverOrange: 18,
-  paverOrangeAlt: 21,
-  cobble: [19, 20],
+/**
+ * The player: a hooded walker from the craftpix ruined-temple pack. Each sheet is 32 x 32 frames
+ * in four rows (facing down, left, right, up); the walk has 6 frames a row, the idle 12.
+ */
+export const PLAYER = {
+  walk: { key: "player-walk", url: "assets/sprites/player_walk.png", frames: 6 },
+  idle: { key: "player-idle", url: "assets/sprites/player_idle.png", frames: 12 },
+  frame: 32,
+  /** The row of the frame where the feet (and the baked-in shadow) end. */
+  footY: 29,
+  facings: ["down", "left", "right", "up"],
 } as const;
 
+export type Facing = (typeof PLAYER.facings)[number];
+
 export const FRAMES = {
+  temple: {
+    templeMossy: [3, 1, 157, 143],
+    templeClean: [179, 1, 154, 140],
+    templeDark: [5, 226, 104, 121],
+    gargoyle: [12, 360, 43, 93],
+    gargoyleMossy: [9, 472, 46, 95],
+    pillarTall: [232, 224, 16, 31],
+    pillarHalf: [264, 232, 16, 23],
+    pillarStump: [296, 238, 16, 17],
+    pillarMossy: [230, 336, 19, 33],
+    pillarMossyHalf: [263, 344, 19, 25],
+    flowersWhite: [151, 6, 20, 20],
+    plinth: [179, 158, 154, 63],
+  },
   greek: {
     templeGreenBig: [99, 32, 138, 224],
     templeBlueBig: [355, 0, 138, 224],
@@ -131,7 +148,6 @@ export function frameRect(ref: SpriteRef): Rect {
 
 /** Textures drawn at runtime in Boot (no art yet, or simple enough to generate). */
 export const GENERATED = {
-  player: "gen-player",
   fish: ["gen-fish-gold", "gen-fish-teal", "gen-fish-coral"],
   beam: "gen-light-beam",
   mote: "gen-mote",
@@ -141,4 +157,6 @@ export const GENERATED = {
   waterMask: "gen-water-mask",
   glints: "gen-glints",
   depth: "gen-depth",
+  lamp: "gen-lamp",
+  kelpBed: "gen-kelp-bed",
 } as const;

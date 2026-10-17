@@ -1,36 +1,58 @@
 /**
- * The shape of Atlantis, after Plato: a central island and two rings of land inside three rings
- * of water, joined by four avenues (north, east, south, west) that bridge the inner two canals.
- * A ring road runs around the middle of each land ring. The outer canal is the city's moat.
+ * The shape of Atlantis, after Plato, seen from above at a slant: a central island and two rings
+ * of land inside rings of water. Every ring is an ellipse ASPECT times wider than it is tall, so
+ * "radius" below always means the horizontal half-width. The south avenue is a grand stair that
+ * runs from the island down through the rings and over the cliff to the Sea Gate; the east and
+ * west avenues bridge the canals.
  *
- *   island            r < 250        the Council and the Bank
- *   inner canal       250 to 306
- *   middle ring       306 to 660     road at r = 470: Market, Exchange, Guild Hall
- *   middle canal      660 to 716
- *   outer ring        716 to 1040    road at r = 878: tavern, circle, Black Reef
- *   the moat          1040 to 1096
- *   the wilds         r > 1096       kelp forests and wrecks; scenery only
+ *   island            r < 220        the Council and the Bank (cream marble)
+ *   inner canal       220 to 244
+ *   middle ring       244 to 380     road at r = 312: Market, Exchange, Guild Hall (sandstone)
+ *   middle canal      380 to 404
+ *   outer ring        r > 404        road at r = 458: tavern, circle, Black Reef (mossy stone)
+ *   the cliff         y = SEA_Y      the city wall drops into the open sea
  *
  * Angles are in degrees, screen style: 0 is east, 90 is south, -90 is north.
  */
 
-export const WORLD = 2240;
-export const CX = WORLD / 2;
-export const CY = WORLD / 2;
+export const WORLD_W = 1024;
+export const WORLD_H = 704;
+export const CX = 512;
+export const CY = 262;
+export const ASPECT = 1.6;
 
-export const ISLAND_R = 250;
+export const ISLAND_R = 220;
 export const CANALS: ReadonlyArray<readonly [number, number]> = [
-  [250, 306],
-  [660, 716],
-  [1040, 1096],
+  [220, 244],
+  [380, 404],
 ];
-export const RING_ROADS = [470, 878] as const;
-export const OUTER_EDGE = 1040;
-export const ROAD_HALF = 16;
-export const AVENUE_HALF = 16;
-export const RIM = 6;
+export const RING_ROADS = [312, 458] as const;
+/** Nothing past this radius is walkable (the outer ring fades into the edge of the map). */
+export const OUTER_EDGE = 500;
+export const ROAD_HALF = 9;
+/** Half-width of the grand stair (south) and half-height of the east/west avenues. */
+export const STAIR_HALF = 18;
+export const AVENUE_HALF = 9;
+export const RIM = 4;
 
-export type Ground = "plaza" | "road" | "bridge" | "rim" | "water" | "sand";
+/** The cliff's top edge and the sea below it. */
+export const SEA_Y = 604;
+export const CLIFF_H = 14;
+/** The Sea Gate: a glowing pool at the foot of the stair. */
+export const GATE = { x: CX, y: 662, halfW: 26, halfH: 18 } as const;
+
+export type Ground =
+  | "plaza"
+  | "sandstone"
+  | "stone"
+  | "road"
+  | "bridge"
+  | "stair"
+  | "rim"
+  | "water"
+  | "cliff"
+  | "sea"
+  | "gate";
 
 export interface Point {
   x: number;
@@ -40,45 +62,55 @@ export interface Point {
 export const toRad = (deg: number) => (deg * Math.PI) / 180;
 
 export function polar(r: number, deg: number): Point {
-  return { x: CX + r * Math.cos(toRad(deg)), y: CY + r * Math.sin(toRad(deg)) };
+  return { x: CX + r * Math.cos(toRad(deg)), y: CY + (r * Math.sin(toRad(deg))) / ASPECT };
 }
 
 export function radiusOf(p: Point): number {
-  return Math.hypot(p.x - CX, p.y - CY);
+  return Math.hypot(p.x - CX, (p.y - CY) * ASPECT);
 }
 
 export function angleOf(p: Point): number {
-  return (Math.atan2(p.y - CY, p.x - CX) * 180) / Math.PI;
+  return (Math.atan2((p.y - CY) * ASPECT, p.x - CX) * 180) / Math.PI;
+}
+
+/** The grand stair: straight down from the island to the Sea Gate. */
+export function onStair(x: number, y: number): boolean {
+  return Math.abs(x - CX) < STAIR_HALF && y > CY && y < GATE.y - GATE.halfH;
 }
 
 /** What lies at a world pixel. Pure and cheap: the ground texture calls it for every pixel. */
 export function groundAt(x: number, y: number): Ground {
   const dx = x - CX;
   const dy = y - CY;
-  const r = Math.sqrt(dx * dx + dy * dy);
+  if (Math.abs(dx) < GATE.halfW && Math.abs(y - GATE.y) < GATE.halfH) return "gate";
+  if (y >= SEA_Y) return onStair(x, y) ? "stair" : "sea";
+  const r = Math.sqrt(dx * dx + dy * dy * ASPECT * ASPECT);
   if (r < ISLAND_R) return "plaza";
-  const onAvenue = (Math.abs(dx) < AVENUE_HALF || Math.abs(dy) < AVENUE_HALF) && r < OUTER_EDGE;
+  const stair = onStair(x, y);
+  const avenue = Math.abs(dy) < AVENUE_HALF && r < OUTER_EDGE;
   for (const [inner, outer] of CANALS) {
     if (r >= inner && r < outer) {
-      if (onAvenue) return "bridge";
+      if (stair || avenue) return "bridge";
       return r < inner + RIM || r >= outer - RIM ? "rim" : "water";
     }
   }
-  if (onAvenue) return "road";
+  if (y >= SEA_Y - CLIFF_H) return stair ? "stair" : "cliff";
+  if (stair) return "stair";
+  if (avenue) return "road";
   for (const road of RING_ROADS) if (Math.abs(r - road) < ROAD_HALF) return "road";
-  return "sand";
+  return r < CANALS[1][0] ? "sandstone" : "stone";
 }
 
-/** Which walkable level a point belongs to: 0 the island, 1 the middle ring, 2 the outer ring and beyond. */
+/** Which walkable level a point belongs to: 0 the island, 1 the middle ring, 2 the outer ring. */
 export function levelOf(r: number): 0 | 1 | 2 {
   if (r < (CANALS[0][0] + CANALS[0][1]) / 2) return 0;
   if (r < (CANALS[1][0] + CANALS[1][1]) / 2) return 1;
   return 2;
 }
 
-/** Half the road's height at a given angle: a ring road looks taller where it runs east-west. */
+/** Half the road's height at a given angle: a ring road looks taller where it runs north-south. */
 function roadHalfHeight(deg: number): number {
-  return ROAD_HALF / Math.max(0.5, Math.abs(Math.sin(toRad(deg))));
+  return ROAD_HALF / Math.max(0.4, ASPECT * Math.abs(Math.sin(toRad(deg))));
 }
 
 /** A foot position just north of a ring road at ``deg`` (sprites extend upward from their foot). */
