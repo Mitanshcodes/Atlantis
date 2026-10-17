@@ -1,10 +1,15 @@
 .DS_Store
 .env
+!.env.example
 
 # Python
+.venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+.pytest-tmp/
+*.sqlite3*
+.nessie-probe/
 
 # Frontend
 node_modules/

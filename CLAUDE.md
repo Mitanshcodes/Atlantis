@@ -39,8 +39,11 @@ Atlantis/
 │   ├── requirements.txt               [Shared]
 │   ├── .env.example                   [Shared]  Nessie + Gemini keys
 │   ├── app/
-│   │   ├── main.py                    [P2]  API routes
+│   │   ├── main.py                    [P2]  API routes (FastAPI)
 │   │   ├── models.py                  [P2]  game state + actions (shared contract)
+│   │   ├── adapter.py                 [P2]  picks the engine: p1 (default) or P2's dev fixture
+│   │   ├── settings.py                [P2]  env settings (Nessie key, live flags, DB)
+│   │   ├── storage.py                 [P2]  SQLite: runs, actions, effects queue, receipts
 │   │   ├── config.py                  [P1]  all tuning numbers
 │   │   ├── engine/                    [P1]
 │   │   │   ├── game.py                [P1]  new game, actions, season loop (public entry point)
@@ -52,11 +55,16 @@ Atlantis/
 │   │   │   ├── money.py               [P1]  Purse, Vault, credit, Standing, Black Reef
 │   │   │   ├── events.py              [P1]  event deck, scenarios
 │   │   │   ├── business.py            [P1]  businesses (only if ahead)
-│   │   │   └── scrolls.py             [P1]  Scrolls, endings
+│   │   │   ├── scrolls.py             [P1]  Scrolls, endings
+│   │   │   ├── serialize.py           [P1]  GameState <-> JSON
+│   │   │   └── bridge.py              [P1]  the engine behind P2's API contract
 │   │   ├── nessie/                    [P2]
-│   │   │   ├── client.py              [P2]  Nessie API calls
-│   │   │   ├── sync.py                [P2]  pushes transactions to Nessie
-│   │   │   └── seed.py                [P2]  creates customers, accounts, merchants
+│   │   │   ├── client.py              [P2]  Nessie HTTP (GET/POST/PUT, retries)
+│   │   │   ├── operations.py          [P2]  money effect -> Nessie request
+│   │   │   ├── sync.py                [P2]  delivers effects: POST, then GET to confirm
+│   │   │   ├── seed.py                [P2]  creates customer, accounts, merchants
+│   │   │   ├── probe.py               [P2]  opt-in live capability probe
+│   │   │   └── test_integration.py    [P2]  P2's tests (dev fixture, mock Nessie)
 │   │   ├── ai/                        [P2]
 │   │   │   └── chronicle.py           [P2]  Gemini Chronicle
 │   │   └── content/                   [M]   all writing
@@ -112,7 +120,7 @@ Atlantis/
 
 The Python packages (`app/`, `engine/`, `nessie/`, `ai/`) also have empty `__init__.py` files, owned by whoever owns the folder. Empty asset folders hold a `.gitkeep`.
 
-**How the layers fit:** the frontend sends an action → `main.py` validates it against `models.py` → `engine/` computes the new state (pure, seeded) → `nessie/sync.py` posts the resulting money movements to Nessie → the new state goes back to the frontend → `store.ts` updates and React re-renders. `ai/chronicle.py` turns the engine's event log into prose at season end, falling back to a template.
+**How the layers fit:** the frontend sends an action → `main.py` validates it against `models.py` → `engine/bridge.py` runs the engine (pure, seeded) → the resulting money effects are queued and `nessie/sync.py` delivers them to Nessie (POST, then GET to confirm) → the new state goes back to the frontend → `store.ts` updates and React re-renders. `ai/chronicle.py` turns the engine's event log into prose at season end, falling back to a template. Details in "Running the whole game".
 
 ## Work split and milestones
 
@@ -370,6 +378,30 @@ Players learn from three things: **Scrolls** earned by doing, an in-world **Chro
 - [ ] Pick one art pack and one sound pack
 - [ ] Playtest and tune the numbers
 - [ ] Set the judge-mode seed
+
+## Running the whole game (integrated)
+
+Backend needs **Python 3.10+** (P2's code uses `X | None`); the engine alone runs on 3.9. From the repo root:
+
+```
+/opt/homebrew/opt/python@3.14/bin/python3.14 -m venv .venv     # once
+.venv/bin/pip install -r backend/requirements.txt              # once
+cp backend/.env.example backend/.env                           # once; put NESSIE_API_KEY in it
+cd backend && ../.venv/bin/python -m uvicorn app.main:app --port 8000
+cd frontend && npm install && npm run dev                      # proxies /api to :8000
+```
+
+- http://localhost:5173/ is the city; http://localhost:5173/p2.html is P2's banking workshop (now on the real engine); http://127.0.0.1:8000/docs is the API.
+- Tests: `cd backend && ../.venv/bin/python -m pytest` runs P1's tests, P2's tests and the integration tests (`tests/test_api.py`: the real engine through P2's API against an in-memory Nessie with POST/GET/PUT).
+
+**How a move flows:** browser → `POST /api/runs/{id}/actions` → `adapter.engine()` = `app/engine/bridge.py` → engine `step` → new `State` + `MoneyEffect`s committed to SQLite → `nessie/sync.py` POSTs each effect to Nessie, saves the ID, GETs it back to confirm → the Ledger rebuilds Purse/Vault from confirmed Nessie records and compares them with the engine.
+
+**Bridge rules (`bridge.py`):**
+- Money crosses the boundary in hundredths (P2) ↔ whole coin (engine); amounts that aren't whole coins are rejected. Class `first_of_their_line` ↔ engine `first_of_line`.
+- The full engine state lives in `State.details["engine"]` (server-side only: `main.py` strips it, plus `details["bridge"]`, from every response). The UI gets `details["view"]`: card, loans, bills, prices, holdings, free visits, Passage price, Scrolls, ending. Money there is also in hundredths.
+- Action names: P2's panel names (`work`, `save`, `withdraw`, `repay_*`, `pay_tithe`, `pay_care`, `pay_circle`, `borrow_black_reef`, `open_secured_card`, `market_visit`/`exchange_visit` baskets, `buy_kelp`…, `buy_shares`…, `buy_passage`) plus `rest`, `end_season`, `end_year`, `visit` (target = place), `open_vault`, `pay_bills`, `dispute_charge`, `invest_pearl_exchange`. `state.available_actions` lists what to offer. Engine `ActionError` → HTTP 422.
+- Nessie records per move: deposits (wages, sales, dividends, interest, advances), purchases at the five world merchants (Market, Exchange, Passage, Council) or withdrawals, Purse↔Vault/credit transfers, a `credit` card account, **loan records** for the guild, circle, Black Reef and Bank loans with **PUT `loan_update`** whenever a balance changes, and bill records with `bill_update` when bills are verified.
+- Loan/bill records are only emitted when `NESSIE_LOANS_VERIFIED` / `NESSIE_BILLS_VERIFIED` are true, because P2's sync holds every later effect behind an unverified one. Money always moves either way. A paid-off loan's remote record keeps its last amount (no PUT to 0 until verified live).
 
 ## Frontend city (P3)
 
