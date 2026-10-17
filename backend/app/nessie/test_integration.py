@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 from app.models import MoneyEffect
 from app.settings import Settings
+from app.storage import Store
 from app.nessie.client import NessieClient, coins, minor_units
 
 class Remote:
@@ -16,6 +17,7 @@ class Remote:
         self.posts = []
         self.timeout_after_write = False
         self.fail_reads = False
+        self.mutate_balances = True
 
     def handle(self, request):
         path = request.url.path
@@ -34,8 +36,9 @@ class Remote:
         if kind in ('deposits', 'purchases', 'withdrawals', 'transfers'):
             record['status'] = 'completed'
             source = self.records['/accounts/' + path.split('/')[2]]
-            source['balance'] += body['amount'] * (1 if kind == 'deposits' else -1)
-            if kind == 'transfers':
+            if self.mutate_balances:
+                source['balance'] += body['amount'] * (1 if kind == 'deposits' else -1)
+            if kind == 'transfers' and self.mutate_balances:
                 self.records['/accounts/' + body['payee_id']]['balance'] += body['amount']
         self.records['/' + prefix + '/' + ident] = record
         self.collections.setdefault(path, []).append(record)
@@ -45,7 +48,8 @@ class Remote:
         return httpx.Response(201, json={'objectCreated': record})
 
 def setup(tmp_path, remote=None, live=False, verified=True):
-    settings = Settings(db=str(tmp_path / 'test.sqlite3'), live=live, api_key='test-key', obligations_verified=verified)
+    settings = Settings(db=str(tmp_path / 'test.sqlite3'), live=live, api_key='test-key',
+                        loans_verified=verified, bills_verified=verified)
     remote = remote or Remote()
     client = NessieClient(settings, httpx.MockTransport(remote.handle))
     app = create_app(settings, client=client, background=False)
@@ -87,7 +91,8 @@ def test_slice_remote_balances_and_receipts(tmp_path):
         game = response.json()
     drain(app)
     ledger = client.get('/api/runs/' + game['run_id'] + '/ledger').json()
-    assert all(e['status'] == 'confirmed' for e in ledger['entries'])
+    assert all(e['status'] == 'confirmed' for e in ledger['entries']), [
+        (e['id'], e['status'], e['error']) for e in ledger['entries'] if e['status'] != 'confirmed']
     assert all(b['matches'] for b in ledger['balances'].values())
     assert game['state']['purse'] == 35500
     assert game['state']['vault'] == 7500
@@ -147,6 +152,55 @@ def test_unverified_loan_never_posts_or_double_funds(tmp_path):
     assert app.state.store.ledger(game['run_id'])[-1]['status'] == 'pending'
     purse = app.state.store.resource(game['run_id'], 'purse')
     assert remote.records['/accounts/' + purse]['balance'] == 400
+
+def test_transfer_expands_to_supported_nessie_records(tmp_path):
+    client, app, remote = setup(tmp_path, live=True)
+    game = run(client, 'caretaker')
+    response = action(client, game, 'save', amount=10000, action_id='reserve')
+    assert response.status_code == 200
+    drain(app)
+    entries = [e for e in app.state.store.ledger(game['run_id']) if e['id'].startswith('reserve:0')]
+    assert [(e['id'], e['body']['kind'], e['status']) for e in entries] == [
+        ('reserve:0:out', 'withdrawal', 'confirmed'),
+        ('reserve:0:in', 'deposit', 'confirmed'),
+    ]
+    assert not any(path.endswith('/transfers') for path, _ in remote.posts)
+
+def test_record_only_mode_reconstructs_remote_balance(tmp_path):
+    remote = Remote()
+    remote.mutate_balances = False
+    settings = Settings(db=str(tmp_path / 'test.sqlite3'), live=True, api_key='test-key',
+                        loans_verified=True, bills_verified=False, transaction_records_only=True)
+    app = create_app(settings, client=NessieClient(settings, httpx.MockTransport(remote.handle)), background=False)
+    client = TestClient(app)
+    game = run(client, 'caretaker')
+    for kind, args in [('work', {}), ('buy_kelp', {'quantity': 5}), ('save', {'amount': 10000})]:
+        response = action(client, game, kind, **args)
+        assert response.status_code == 200
+        game = response.json()
+    drain(app)
+    ledger = client.get('/api/runs/' + game['run_id'] + '/ledger').json()
+    assert ledger['balances']['purse']['matches'] is True
+    assert ledger['balances']['vault']['matches'] is True
+
+def test_bill_gate_is_independent_from_verified_loans(tmp_path):
+    remote = Remote()
+    settings = Settings(db=str(tmp_path / 'test.sqlite3'), live=True, api_key='test-key',
+                        loans_verified=True, bills_verified=False)
+    app = create_app(settings, client=NessieClient(settings, httpx.MockTransport(remote.handle)), background=False)
+    client = TestClient(app)
+    game = run(client)
+    drain(app)
+    assert any(path.endswith('/loans') for path, _ in remote.posts)
+    bill = MoneyEffect(effect_id='bill:0', kind='bill', source='purse', destination='tithe',
+                       amount=4000, reason='Council tithe', payload={'status': 'pending', 'payee': 'Council'})
+    with app.state.store.connect() as db:
+        Store.effects(db, game['run_id'], [bill])
+    app.state.sync.tick()
+    row = app.state.store.ledger(game['run_id'])[-1]
+    assert row['status'] == 'pending'
+    assert 'cannot yet be read back' in row['error']
+    assert not any(path.endswith('/bills') for path, _ in remote.posts)
 
 def test_shared_merchants_reused(tmp_path):
     client, app, remote = setup(tmp_path, live=True)
