@@ -3,6 +3,7 @@ import hashlib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from .client import coins
+from ..models import MoneyEffect
 
 ADDRESS = {'street_number': '1', 'street_name': 'Harbor Way', 'city': 'Atlantis', 'state': 'VA', 'zip': '23219'}
 
@@ -18,6 +19,23 @@ class Operation:
     resource_name: str | None = None
     method: str = 'POST'
     remote_id: str | None = None
+
+def expand_effects(effects: list[MoneyEffect]) -> list[MoneyEffect]:
+    """Use supported endpoints when production exposes no transfer POST."""
+    expanded = []
+    for effect in effects:
+        if effect.kind != 'transfer':
+            expanded.append(effect)
+            continue
+        expanded.extend([
+            effect.model_copy(update={'effect_id': effect.effect_id + ':out', 'kind': 'withdrawal',
+                'destination': None, 'reason': effect.reason + ' (transfer out)',
+                'payload': effect.payload | {'transfer_peer': effect.destination}}),
+            effect.model_copy(update={'effect_id': effect.effect_id + ':in', 'kind': 'deposit',
+                'source': None, 'destination': effect.destination, 'reason': effect.reason + ' (transfer in)',
+                'payload': effect.payload | {'transfer_peer': effect.source}}),
+        ])
+    return expanded
 
 def operation(store, run_id, effect):
     e = effect
@@ -55,21 +73,24 @@ def operation(store, run_id, effect):
     if e.kind == 'merchant':
         return Operation('/merchants', {'name': marker}, '/merchants', '/merchants', 'name', marker, 'world', e.destination)
     source = account(e.destination if e.kind == 'deposit' else e.source)
-    plural = {'deposit': 'deposits', 'purchase': 'purchases', 'transfer': 'transfers',
+    plural = {'deposit': 'deposits', 'purchase': 'withdrawals', 'transfer': 'transfers',
               'withdrawal': 'withdrawals', 'bill': 'bills', 'loan': 'loans'}[e.kind]
     path = f'/accounts/{source}/{plural}'
-    prefix = {'purchase': '/purchase', 'withdrawal': '/withdrawal'}.get(e.kind, '/' + plural)
+    prefix = {'purchase': '/withdrawal', 'withdrawal': '/withdrawal'}.get(e.kind, '/' + plural)
     body = {'medium': 'balance', 'transaction_date': datetime.now(timezone.utc).date().isoformat(),
             'amount': amount, 'description': marker}
     field = 'description'
     if e.kind == 'deposit':
         body['status'] = 'completed'
     elif e.kind == 'purchase':
-        merchant = store.resource('world', e.merchant)
-        if not merchant:
+        if not store.resource('world', e.merchant):
             raise ValueError(f'Missing merchant dependency: {e.merchant}')
-        body['merchant_id'] = merchant
-        body['purchase_date'] = body.pop('transaction_date')
+        # Production currently publishes no purchase-create route. A withdrawal
+        # remains an actual Nessie money record; merchant/effect linkage stays in
+        # the local immutable ledger and stable description marker.
+        body['status'] = 'completed'
+    elif e.kind == 'withdrawal':
+        body['status'] = 'completed'
     elif e.kind == 'transfer':
         body['payee_id'] = account(e.destination)
     elif e.kind == 'bill':

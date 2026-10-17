@@ -90,8 +90,11 @@ class Sync:
                 if row['status'] == 'failed' or row['retry_at'] > time.time():
                     continue
                 e = MoneyEffect.model_validate_json(row['body'])
-                if e.kind in ('loan', 'bill', 'loan_update', 'bill_update') and not self.settings.obligations_verified:
-                    self.update(row['seq'], 'pending', 'Bill/loan balance behavior needs live capability verification', delay=30)
+                if e.kind in ('loan', 'loan_update') and not self.settings.loans_verified:
+                    self.update(row['seq'], 'pending', 'Loan record behavior needs live capability verification', delay=30)
+                    continue
+                if e.kind in ('bill', 'bill_update') and not self.settings.bills_verified:
+                    self.update(row['seq'], 'pending', 'Bill records cannot yet be read back from Nessie', delay=30)
                     continue
                 attempted = False
                 try:
@@ -143,6 +146,15 @@ class Sync:
                 try:
                     record = entity(self.client.get('/accounts/' + remote_id))
                     remote = minor_units(record['balance'])
+                    if self.settings.transaction_records_only:
+                        for entry in entries:
+                            if entry['status'] != 'confirmed':
+                                continue
+                            effect = MoneyEffect.model_validate(entry['body'])
+                            if effect.kind == 'deposit' and effect.destination == name:
+                                remote += effect.amount
+                            elif effect.kind in ('withdrawal', 'purchase') and effect.source == name:
+                                remote -= effect.amount
                     self.store.cache(f'balance:{run_id}:{name}', {'remote': remote, 'at': time.time()})
                 except (RemoteError, KeyError, ValueError, TypeError):
                     pass

@@ -11,6 +11,7 @@ from .storage import Store
 from .nessie.client import NessieClient
 from .nessie.seed import initial_effects
 from .nessie.sync import Sync
+from .nessie.operations import expand_effects
 from .ai.chronicle import chronicle
 
 def create_app(settings=None, client=None, engine_adapter=None, background=True):
@@ -49,7 +50,9 @@ def create_app(settings=None, client=None, engine_adapter=None, background=True)
 
     @app.get('/api/health')
     def health():
-        return {'ok': True, 'nessie_live': sync.live, 'obligations_verified': settings.obligations_verified}
+        return {'ok': True, 'nessie_live': sync.live, 'loans_verified': settings.loans_verified,
+                'bills_verified': settings.bills_verified,
+                'transaction_records_only': settings.transaction_records_only}
 
     @app.post('/api/runs', status_code=201)
     def create_run(request: RunRequest):
@@ -59,7 +62,7 @@ def create_app(settings=None, client=None, engine_adapter=None, background=True)
         run_id = str(uuid4())
         with store.connect() as db:
             db.execute('INSERT INTO runs VALUES(?,?)', (run_id, transition.state.model_dump_json()))
-            Store.effects(db, run_id, initial_effects(transition.state) + transition.effects)
+            Store.effects(db, run_id, expand_effects(initial_effects(transition.state) + transition.effects))
             db.executemany('INSERT INTO events(run_id,season,text) VALUES(?,?,?)',
                            [(run_id, transition.state.season, event) for event in transition.events])
         return {'run_id': run_id, 'state': transition.state, 'events': transition.events}
@@ -94,7 +97,7 @@ def create_app(settings=None, client=None, engine_adapter=None, background=True)
                 raise HTTPException(500, 'Engine effect IDs must be unique and prefixed by action ID')
             response = {'run_id': run_id, 'state': transition.state.model_dump(), 'events': transition.events}
             db.execute('UPDATE runs SET state=? WHERE id=?', (transition.state.model_dump_json(), run_id))
-            Store.effects(db, run_id, transition.effects)
+            Store.effects(db, run_id, expand_effects(transition.effects))
             db.executemany('INSERT INTO events(run_id,season,text) VALUES(?,?,?)',
                            [(run_id, state.season, event) for event in transition.events])
             db.execute('INSERT INTO actions VALUES(?,?,?,?)',
