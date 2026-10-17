@@ -44,10 +44,12 @@ class Sync:
         for field in ('amount', 'payment_amount', 'payee_id', 'merchant_id'):
             if field in op.body and record.get(field) != op.body[field]:
                 raise RemoteError('Receipt values do not match the intended money movement', ambiguous=True)
-        if record.get('status') in ('cancelled', 'failed', 'rejected'):
+        kind = json.loads(row['body'])['kind']
+        if kind in ('bill', 'loan', 'bill_update', 'loan_update') and record.get('status') != op.body.get('status', record.get('status')):
+            raise RemoteError('Obligation status differs from the intended update', ambiguous=True)
+        if kind in ('deposit', 'purchase', 'transfer', 'withdrawal') and record.get('status') in ('cancelled', 'failed', 'rejected'):
             self.update(row['seq'], 'failed', 'Remote transaction was rejected', receipt)
             return
-        kind = json.loads(row['body'])['kind']
         if kind in ('deposit', 'purchase', 'transfer', 'withdrawal') and record.get('status') != 'completed':
             self.update(row['seq'], 'pending', 'Nessie settlement pending', receipt, delay=5)
             return
