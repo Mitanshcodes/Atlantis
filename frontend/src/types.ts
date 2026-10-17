@@ -1,8 +1,10 @@
 // Mirror backend/app/models.py. Money is integer hundredths of a coin.
 export type ClassId = 'newcomer' | 'first_of_their_line' | 'caretaker' | 'tidewalker';
+export interface Order { side: 'buy' | 'sell'; target: string; quantity: number }
 export interface Action {
   action_id: string; expected_version: number; kind: string;
   amount?: number | null; quantity?: number | null; target?: string | null;
+  orders?: Order[] | null;
 }
 export interface State {
   class_id: ClassId; seed: number; version: number; development: boolean;
@@ -12,7 +14,7 @@ export interface State {
 }
 export interface MoneyEffect {
   effect_id: string;
-  kind: 'customer' | 'account' | 'merchant' | 'deposit' | 'purchase' | 'transfer' | 'withdrawal' | 'bill' | 'loan';
+  kind: 'customer' | 'account' | 'merchant' | 'deposit' | 'purchase' | 'transfer' | 'withdrawal' | 'bill' | 'loan' | 'bill_update' | 'loan_update';
   source: string | null; destination: string | null; merchant: string | null;
   amount: number; reason: string; payload: Record<string, unknown>;
 }

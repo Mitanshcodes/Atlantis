@@ -3,10 +3,15 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 ClassId = Literal['newcomer', 'first_of_their_line', 'caretaker', 'tidewalker']
-EffectKind = Literal['customer', 'account', 'merchant', 'deposit', 'purchase', 'transfer', 'withdrawal', 'bill', 'loan']
+EffectKind = Literal['customer', 'account', 'merchant', 'deposit', 'purchase', 'transfer', 'withdrawal', 'bill', 'loan', 'bill_update', 'loan_update']
 
 class Contract(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
+
+class Order(Contract):
+    side: Literal['buy', 'sell']
+    target: str = Field(min_length=1, max_length=80)
+    quantity: int = Field(gt=0)
 
 class Action(Contract):
     action_id: str = Field(min_length=1, max_length=100)
@@ -15,6 +20,7 @@ class Action(Contract):
     amount: int | None = Field(default=None, gt=0)
     quantity: int | None = Field(default=None, gt=0)
     target: str | None = None
+    orders: list[Order] | None = Field(default=None, min_length=1, max_length=50)
 
 class RunRequest(Contract):
     class_id: ClassId
