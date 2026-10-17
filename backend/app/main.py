@@ -11,6 +11,7 @@ from .storage import Store
 from .nessie.client import NessieClient
 from .nessie.seed import initial_effects
 from .nessie.sync import Sync
+from .ai.chronicle import chronicle
 
 def create_app(settings=None, client=None, engine_adapter=None, background=True):
     settings = settings or Settings.env()
@@ -97,6 +98,21 @@ def create_app(settings=None, client=None, engine_adapter=None, background=True)
         with store.connect() as db:
             state = read_run(db, run_id)
         return {'entries': store.ledger(run_id), 'live': sync.live, 'balances': sync.balances(run_id, state)}
+
+    @app.get('/api/runs/{run_id}/chronicle')
+    def get_chronicle(run_id: str):
+        with store.connect() as db:
+            state = read_run(db, run_id)
+            responses = db.execute('SELECT response FROM actions WHERE run_id=? ORDER BY rowid', (run_id,)).fetchall()
+        # Only server-recorded engine events go to the narrator; never browser-supplied facts.
+        events = [event for row in responses for event in json.loads(row['response'])['events']]
+        key = f'chronicle:{run_id}:{state.version}'
+        cached = store.cached(key)
+        if cached:
+            return cached
+        result = chronicle(state.season, events)
+        store.cache(key, result)
+        return result
 
     return app
 
