@@ -13,6 +13,7 @@ from ..settings import Settings
 from ..storage import Store
 from .client import NessieClient
 from .sync import Sync, entity
+from .operations import expand_effects
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -27,7 +28,8 @@ def main():
     run_id = 'probe-' + uuid4().hex
     directory = Path('.nessie-probe') / run_id
     directory.mkdir(parents=True)
-    settings = replace(settings, db=str(directory / 'probe.sqlite3'), live=True, obligations_verified=args.obligations)
+    settings = replace(settings, db=str(directory / 'probe.sqlite3'), live=True,
+                       loans_verified=args.obligations, bills_verified=args.obligations)
     client = NessieClient(settings)
     store = Store(settings.db)
     sync = Sync(store, client, settings)
@@ -58,23 +60,32 @@ def main():
     ]
     if args.obligations:
         effects += [
-            effect('bill', 'bill', source='purse', destination='probe_bill', amount=100,
-                   payload={'status': 'pending', 'payee': 'Atlantis probe'}),
             effect('loan', 'loan', source='purse', destination='probe_loan', amount=1000,
                    payload={'type': 'personal', 'status': 'approved', 'credit_score': 600, 'monthly_payment': 1}),
+            effect('bill', 'bill', source='purse', destination='probe_bill', amount=100,
+                   payload={'status': 'pending', 'payee': 'Atlantis probe'}),
         ]
     try:
         for e in effects:
             step = {'effect': e.effect_id, 'before': balances()}
             report['steps'].append(step)
             with store.connect() as db:
-                Store.effects(db, run_id, [e])
+                Store.effects(db, run_id, expand_effects([e]))
             # Save intent before dispatch, including for interrupted invocations.
             (directory / 'report.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
-            sync.tick()
-            row = store.ledger(run_id)[-1]
-            step.update(after=balances(), status=row['status'], receipt=row['receipt'], error=row['error'])
-            if row['status'] != 'confirmed':
+            rows = []
+            for _ in range(4):
+                sync.tick()
+                rows = [row for row in store.ledger(run_id) if row['id'].startswith(e.effect_id)]
+                if all(row['status'] == 'confirmed' for row in rows):
+                    break
+                if any(row['status'] in ('failed', 'needs_review') for row in rows):
+                    break
+            step.update(after=balances(),
+                        status='confirmed' if all(row['status'] == 'confirmed' for row in rows) else rows[-1]['status'],
+                        receipts=[row['receipt'] for row in rows],
+                        errors=[row['error'] for row in rows if row['error']])
+            if step['status'] != 'confirmed':
                 report['stopped_reason'] = 'Inspect this step before any further writes; no automatic replay'
                 break
         else:
