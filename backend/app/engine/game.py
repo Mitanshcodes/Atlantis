@@ -44,7 +44,6 @@ from app.engine.actions import (
 )
 from app.engine.rng import rng
 from app.engine.state import (
-    Account,
     BillKind,
     Card,
     ClassId,
@@ -95,8 +94,7 @@ def new_game(player_class: ClassId, seed: int) -> GameState:
     s.record("game_start", player_class=player_class)
 
     if spec.circle_pot:
-        s.purse += spec.circle_pot
-        money.post(s, NessieOp.TRANSFER, Account.CIRCLE, spec.circle_pot, "Lending circle pot", to=Account.PURSE)
+        money.add_loan(s, LoanKind.CIRCLE, spec.circle_pot, 0.0, "Lending circle pot", NessieOp.TRANSFER)
     _open_season(s)
     return s
 
@@ -116,13 +114,31 @@ def step(s: GameState, action: object) -> None:
     handler = _HANDLERS.get(type(action))
     if handler is None:
         raise ActionError("unknown_action", f"Unknown action: {type(action).__name__}.")
-    spends_tide = isinstance(action, TIDE_ACTIONS)
-    if spends_tide or isinstance(action, EndSeason):
+    free_place = _free_visit(s, action)
+    spends_tide = isinstance(action, TIDE_ACTIONS) and free_place is None
+    if free_place is not None:
+        money.require(s.phase == Phase.PLAYING, "no_tides", "The Market and Harbor are closed.")
+    elif spends_tide or isinstance(action, EndSeason):
         money.require(s.phase == Phase.PLAYING and s.tides_left > 0, "no_tides", "No tides left this season.")
     handler(s, action)
+    if free_place is not None:
+        s.free_visits_used.append(free_place)
     if spends_tide:
         _pass_tide(s)
     scrolls.check(s)
+
+
+_VISIT_PLACES = {MarketTrip: Place.MARKET, ExchangeVisit: Place.HARBOR}
+
+
+def visit_is_free(s: GameState, place: Place) -> bool:
+    """Whether the next Market trip (MARKET) or Exchange visit (HARBOR) this season costs no tide."""
+    return s.free_visits_used.count(place) < config.FREE_VISITS_PER_SEASON.get(place, 0)
+
+
+def _free_visit(s: GameState, action: object):
+    place = _VISIT_PLACES.get(type(action))
+    return place if place is not None and visit_is_free(s, place) else None
 
 
 # --- Tides and seasons ----------------------------------------------------------------------------
@@ -175,14 +191,13 @@ def _open_season(s: GameState) -> None:
     spec = money.class_spec(s)
     s.tide = 0
     s.flags.visited = []
+    s.free_visits_used = []
     market.open_season(s, r)
     exchange.open_season(s)
 
     money.post_bill(s, BillKind.TITHE, config.TITHE)
     if spec.care_bill:
         money.post_bill(s, BillKind.CARE, spec.care_bill)
-    if spec.circle_pot:
-        money.post_bill(s, BillKind.CIRCLE, config.CIRCLE_PAYMENT)
 
     hungry_seasons = int(s.hungry_next)
     s.hungry_next = False

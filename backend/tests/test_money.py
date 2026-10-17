@@ -107,17 +107,19 @@ def test_clean_season_gains_thirty(quiet):
     assert s.standing_factors == {"payments": 15, "credit_used": 5, "history": 10}
 
 
-def test_bills_autopay_from_the_purse(quiet):
+def test_bills_and_the_circle_autopay_from_the_purse(quiet):
     s = game(ClassId.CARETAKER)
     money.autopay_bills(s)
     assert s.bills == [] and s.purse == 1100 - 40 - 60 - 100
+    assert s.loans[LoanKind.CIRCLE].balance == 300
 
 
 def test_autopay_pays_what_the_purse_can_cover_oldest_first(quiet):
     s = game(ClassId.CARETAKER)
     s.purse = 120  # tithe 40 then care 60; the circle's 100 doesn't fit
     money.autopay_bills(s)
-    assert [b.kind for b in s.bills] == [BillKind.CIRCLE] and s.purse == 20
+    assert s.bills == [] and s.purse == 20
+    assert s.loans[LoanKind.CIRCLE].balance == 400
 
 
 def test_bill_autopay_cannot_cover_is_late_with_a_fee(quiet):
@@ -171,18 +173,20 @@ def test_vault_earns_interest(quiet):
 # --- Bills ----------------------------------------------------------------------------------------
 
 
-def test_caretaker_starts_with_three_bills(quiet):
+def test_caretaker_starts_with_two_bills_and_owes_the_circle(quiet):
     s = game(ClassId.CARETAKER)
-    assert sorted(b.kind for b in s.bills) == sorted([BillKind.TITHE, BillKind.CARE, BillKind.CIRCLE])
+    assert sorted(b.kind for b in s.bills) == sorted([BillKind.TITHE, BillKind.CARE])
+    assert s.loans[LoanKind.CIRCLE].balance == 400
+    assert money.total_debt(s) == 40 + 60 + 400
 
 
 def test_pay_one_bill_or_all(quiet):
     s = game(ClassId.CARETAKER)
     tithe = next(b for b in s.bills if b.kind == BillKind.TITHE)
     money.pay_bill(s, tithe.id)
-    assert len(s.bills) == 2
+    assert len(s.bills) == 1
     money.pay_bill(s)
-    assert s.bills == [] and s.purse == 1100 - 40 - 60 - 100
+    assert s.bills == [] and s.purse == 1100 - 40 - 60
 
 
 def test_cannot_pay_bills_without_the_coin(quiet):
@@ -192,10 +196,51 @@ def test_cannot_pay_bills_without_the_coin(quiet):
         money.pay_bill(s)
 
 
-def test_unpaid_circle_payment_counts_as_missed(quiet):
+# --- The lending circle ---------------------------------------------------------------------------
+
+
+def test_circle_payment_the_purse_cannot_cover_is_missed(quiet):
     s = game(ClassId.CARETAKER)
+    s.purse = 0
+    money.autopay_bills(s)
     money.settle_season(s)
     assert s.flags.circle_missed
+    # only the late tithe costs Standing; the circle itself doesn't
+    assert s.standing_factors["payments"] == config.STANDING_LATE_TITHE
+
+
+def test_circle_is_repaid_a_hundred_a_season(quiet):
+    s = game(ClassId.CARETAKER)
+    balances = []
+    for season in range(3):
+        s.season = season
+        s.purse = 1000
+        money.autopay_bills(s)
+        money.check_circle(s)
+        balances.append(s.loans[LoanKind.CIRCLE].balance)
+    assert balances == [300, 200, 100] and not s.flags.circle_missed
+
+
+def test_paying_the_circle_ahead_lowers_later_dues(quiet):
+    s = game(ClassId.CARETAKER)
+    money.pay_loan(s, LoanKind.CIRCLE, 250)
+    assert money.circle_due(s) == 0
+    s.season = 1
+    assert money.circle_due(s) == 0
+    s.season = 2
+    assert money.circle_due(s) == 50
+
+
+def test_no_passage_while_owing_the_circle(quiet):
+    s = game(ClassId.CARETAKER)
+    s.purse = 5000
+    money.pay_bill(s)
+    with pytest.raises(ActionError) as err:
+        money.buy_passage(s)
+    assert err.value.code == "debts_outstanding"
+    money.pay_loan(s, LoanKind.CIRCLE, 400)
+    money.buy_passage(s)
+    assert s.passage_paid == 1200 and LoanKind.CIRCLE not in s.loans
 
 
 # --- Loans ----------------------------------------------------------------------------------------

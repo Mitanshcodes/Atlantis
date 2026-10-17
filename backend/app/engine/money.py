@@ -30,7 +30,6 @@ from app.engine.state import (
 BILL_MEMOS = {
     BillKind.TITHE: "Tithe to the Council",
     BillKind.CARE: "Care bill",
-    BillKind.CIRCLE: "Lending circle payment",
     BillKind.REPAIR: "Roof repair",
 }
 
@@ -236,19 +235,36 @@ def pay_bill(s: GameState, bill_id: Optional[int] = None) -> None:
 
 
 def autopay_bills(s: GameState) -> None:
-    """Season end: the Purse pays every bill it can cover, oldest first. The rest go late."""
+    """Season end: the Purse pays every bill it can cover, oldest first, then the circle's
+    scheduled payment. Whatever it can't cover goes late (bills) or counts as missed (circle)."""
     for b in sorted(s.bills, key=lambda b: b.id):
         if b.amount <= s.purse:
             _settle_bill(s, b)
+    due = circle_due(s)
+    if due and due <= s.purse:
+        _repay(s, s.loans[LoanKind.CIRCLE], due, "Lending circle payment")
 
 
 def _settle_bill(s: GameState, b: Bill) -> None:
     s.purse -= b.amount
-    if b.kind == BillKind.CIRCLE:
-        post(s, NessieOp.TRANSFER, Account.PURSE, b.amount, BILL_MEMOS[b.kind], to=Account.CIRCLE, bill_id=b.id)
-    else:
-        post(s, NessieOp.BILL, Account.PURSE, b.amount, BILL_MEMOS[b.kind], bill_id=b.id)
+    post(s, NessieOp.BILL, Account.PURSE, b.amount, BILL_MEMOS[b.kind], bill_id=b.id)
     s.bills.remove(b)
+
+
+def circle_due(s: GameState) -> int:
+    """What the circle needs by this season's end: the pot is repaid ``CIRCLE_PAYMENT`` a season,
+    the last share at the Passage check. Paying ahead lowers later dues."""
+    loan = s.loans.get(LoanKind.CIRCLE)
+    if loan is None:
+        return 0
+    allowed = config.CIRCLE_PAYMENT * (LONG_DARK - s.season)
+    return max(0, loan.balance - allowed)
+
+
+def check_circle(s: GameState) -> None:
+    """After autopay: a payment still due is a missed payment (no Standing hit; the circle remembers)."""
+    if circle_due(s):
+        s.flags.circle_missed = True
 
 
 # --- Loans and the Black Reef ---------------------------------------------------------------------
@@ -270,12 +286,17 @@ def pay_loan(s: GameState, kind: LoanKind, amount: int) -> None:
     require(loan is not None, "no_loan", "You owe nothing there.")
     amount = min(amount, loan.balance)
     require(amount <= s.purse, "insufficient_funds", f"Your Purse holds {s.purse}◈.")
+    memo = "Lending circle payment" if kind == LoanKind.CIRCLE else f"Repayment: {kind.value} loan"
+    _repay(s, loan, amount, memo)
+
+
+def _repay(s: GameState, loan: Loan, amount: int, memo: str) -> None:
     s.purse -= amount
     loan.balance -= amount
     loan.paid_this_season += amount
-    post(s, NessieOp.TRANSFER, Account.PURSE, amount, f"Repayment: {kind.value} loan", to=LOAN_ACCOUNTS[kind])
+    post(s, NessieOp.TRANSFER, Account.PURSE, amount, memo, to=LOAN_ACCOUNTS[loan.kind])
     if loan.balance == 0:
-        del s.loans[kind]
+        del s.loans[loan.kind]
 
 
 def black_reef_advance(s: GameState, amount: int) -> None:
@@ -347,6 +368,7 @@ def buy_passage(s: GameState) -> None:
 def settle_season(s: GameState) -> Dict[str, Any]:
     """Season-end money: late bills, card minimum and interest, loans, Vault interest, Standing."""
     late = _mark_late_bills(s)
+    check_circle(s)
     missed_min, card_interest = _settle_card(s)
     missed_loan = _settle_loans(s)
     vault_interest = 0
@@ -383,8 +405,6 @@ def _mark_late_bills(s: GameState) -> List[BillKind]:
              bill_id=bill.id, pending=True)
         if bill.kind not in late:
             late.append(bill.kind)
-        if bill.kind == BillKind.CIRCLE:
-            s.flags.circle_missed = True
     return late
 
 

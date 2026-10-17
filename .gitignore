@@ -1,0 +1,17 @@
+.DS_Store
+.env
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Frontend
+node_modules/
+dist/
+
+# Raw asset packs (originals, PSDs, readmes). What the game uses is copied into frontend/public/assets.
+frontend/asset-packs/
+
+# Local design exports (large; reference only)
+frontend/design-refs/

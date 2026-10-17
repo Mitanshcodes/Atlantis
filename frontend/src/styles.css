@@ -1,0 +1,106 @@
+/* Palette from the art kit ("One City, One Hand"). */
+:root {
+  --abyss: #061a26;
+  --deep: #0c2a3a;
+  --water: #1b6f8a;
+  --sea: #2bb3c0;
+  --foam: #7fe3e0;
+  --marble: #f2ead8;
+  --sand: #e3cfa4;
+  --gold: #f0b43c;
+  --gold-dark: #8a6a2a;
+  --coral: #e8624a;
+  --kelp: #3c8a4e;
+
+  --font-title: "Cinzel", Georgia, serif;
+  --font-pixel: "Pixelify Sans", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: #0a2a6a;
+  color: var(--marble);
+  font-family: var(--font-pixel);
+  overflow: hidden;
+}
+
+.app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: var(--cursor-default, auto);
+}
+
+.phaser-host {
+  position: absolute;
+  inset: 0;
+}
+
+.phaser-host canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* --- Panels -------------------------------------------------------------------------------- */
+
+.dialogue {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 32px));
+  padding: 16px 20px 18px;
+  background: rgba(6, 26, 38, 0.94);
+  border: 2px solid var(--gold);
+  box-shadow:
+    0 0 0 4px var(--abyss),
+    0 0 0 6px var(--gold-dark);
+}
+
+.dialogue__eyebrow {
+  margin: 0;
+  color: var(--foam);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dialogue__title {
+  margin: 2px 0 8px;
+  font-family: var(--font-title);
+  font-size: 22px;
+  color: var(--gold);
+}
+
+.dialogue__line {
+  margin: 0 0 14px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.button {
+  font: inherit;
+  font-size: 15px;
+  padding: 6px 18px;
+  color: var(--abyss);
+  background: var(--gold);
+  border: 2px solid var(--abyss);
+  box-shadow: 0 0 0 2px var(--gold-dark);
+  cursor: var(--cursor-hover, pointer);
+}
+
+.button:hover {
+  background: #ffd36a;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--foam);
+  outline-offset: 3px;
+}

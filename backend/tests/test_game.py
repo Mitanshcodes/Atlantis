@@ -33,7 +33,7 @@ from app.engine.actions import (
     Withdraw,
     Work,
 )
-from app.engine.game import apply, new_game, step
+from app.engine.game import apply, new_game, step, visit_is_free
 from app.engine.state import (
     LONG_DARK,
     Account,
@@ -55,7 +55,7 @@ from app.engine.state import (
     [
         (ClassId.NEWCOMER, 500, None, None, False, {}),
         (ClassId.FIRST_OF_LINE, 800, 0, 580, True, {LoanKind.GUILD: 500}),
-        (ClassId.CARETAKER, 1100, 0, 620, True, {}),  # 700 + the circle's 400 pot
+        (ClassId.CARETAKER, 1100, 0, 620, True, {LoanKind.CIRCLE: 400}),  # 700 + the circle's pot
         (ClassId.TIDEWALKER, 500, None, 540, True, {}),
     ],
 )
@@ -311,6 +311,7 @@ def test_passage_can_be_bought_early_and_play_continues(quiet):
     s = game(ClassId.CARETAKER)
     s.purse = 5000
     step(s, PayBill())
+    step(s, PayLoan(LoanKind.CIRCLE, 400))
     step(s, BuyPassage())
     step(s, Work())
     assert s.passage_paid == 1200 and s.phase == Phase.PLAYING
@@ -342,4 +343,50 @@ def test_newcomer_who_only_works_misses_the_ship(quiet):
 def test_exchange_visit_counts_as_harbor_visit(quiet):
     s = game(ClassId.CARETAKER)
     step(s, ExchangeVisit((ShareOrder(House.ORO, 1),)))
-    assert Place.HARBOR in s.flags.visited and s.tide == 1
+    assert Place.HARBOR in s.flags.visited
+
+
+# --- Free visits ----------------------------------------------------------------------------------
+
+
+def test_first_market_and_exchange_visits_each_season_are_free(quiet):
+    s = game(ClassId.CARETAKER)
+    assert visit_is_free(s, Place.MARKET) and visit_is_free(s, Place.HARBOR)
+    step(s, MarketTrip((Order(Good.KELP, 5),)))
+    step(s, ExchangeVisit((ShareOrder(House.ORO, 1),)))
+    assert s.tide == 0
+    assert not visit_is_free(s, Place.MARKET) and not visit_is_free(s, Place.HARBOR)
+    step(s, MarketTrip((Order(Good.KELP, 5),)))
+    step(s, ExchangeVisit((ShareOrder(House.ORO, 1),)))
+    assert s.tide == 2
+
+
+def test_free_visits_come_back_each_season(quiet):
+    s = game(ClassId.CARETAKER)
+    step(s, MarketTrip((Order(Good.KELP, 5),)))
+    step(s, EndSeason())
+    assert visit_is_free(s, Place.MARKET)
+    step(s, MarketTrip((Order(Good.KELP, 5),)))
+    assert s.tide == 0
+
+
+def test_a_failed_visit_does_not_use_up_the_free_one(quiet):
+    s = game(ClassId.CARETAKER)
+    with pytest.raises(ActionError):
+        apply(s, MarketTrip((Order(Good.KELP, 999),)))
+    assert visit_is_free(s, Place.MARKET)
+
+
+def test_work_still_costs_a_tide(quiet):
+    s = game(ClassId.CARETAKER)
+    step(s, Work())
+    assert s.tide == 1
+
+
+def test_no_free_visits_after_the_last_tide(quiet):
+    s = game(ClassId.CARETAKER)
+    advance_to(s, LONG_DARK)
+    step(s, EndSeason())
+    with pytest.raises(ActionError) as err:
+        step(s, MarketTrip((Order(Good.KELP, 1),)))
+    assert err.value.code == "no_tides"

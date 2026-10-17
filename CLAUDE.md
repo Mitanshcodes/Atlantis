@@ -69,8 +69,11 @@ Atlantis/
 │   └── scripts/
 │       └── simulate.py                [P1]  balance testing (bot strategies, escape rates)
 └── frontend/
-    ├── package.json                   [Shared]
-    ├── public/assets/                 [P3]  city/ sprites/ ui/ audio/
+    ├── package.json                   [Shared]  Vite + React 18 + Phaser 3.90 + TypeScript
+    ├── index.html                     [P3]  fonts (Cinzel, Pixelify Sans, Silkscreen)
+    ├── vite.config.ts, tsconfig.json  [Shared]
+    ├── asset-packs/                   [P3]  raw downloaded packs (gitignored, see below)
+    ├── public/assets/                 [P3]  city/ sprites/ ui/ audio/ (only the sheets the game uses)
     └── src/
         ├── main.tsx                   [Shared]
         ├── App.tsx                    [P3]  screen switcher
@@ -79,12 +82,19 @@ Atlantis/
         ├── store.ts                   [P2]  game state
         ├── styles.css                 [P3]
         ├── game/                      [P3]  Phaser
-        │   ├── PhaserGame.tsx         [P3]
-        │   ├── EventBus.ts            [P3]  Phaser ↔ React
-        │   ├── buildings.ts           [P3]  click zones
+        │   ├── PhaserGame.tsx         [P3]  mounts Phaser in React
+        │   ├── EventBus.ts            [P3]  typed Phaser ↔ React events
+        │   ├── assets.ts              [P3]  sheet paths + named frame rects
+        │   ├── geometry.ts            [P3]  the rings: radii, canals, roads, groundAt()
+        │   ├── ground.ts              [P3]  paints the seabed texture pixel by pixel
+        │   ├── buildings.ts           [P3]  enterable buildings, which ring, keepers
+        │   ├── cityMap.ts             [P3]  decor placement, walking routes
+        │   ├── cursors.ts             [P3]  the round cursor (Phaser + CSS)
+        │   ├── random.ts              [P3]  seeded RNG + coordinate hash
+        │   ├── fx/underwater.ts       [P3]  caustics, colour grade, light, bubbles, fish, sway
         │   └── scenes/
-        │       ├── Boot.ts            [P3]
-        │       └── City.ts            [P3]
+        │       ├── Boot.ts            [P3]  loads sheets, names frames, draws generated textures
+        │       └── City.ts            [P3]  the city scene: world, buildings, player, camera
         └── ui/                        React
             ├── ClassSelect.tsx        [P3]
             ├── Hud.tsx                [P3]
@@ -162,6 +172,7 @@ Devpost angle: each class is built on a real financial barrier, many of which fa
 Year: **Spring → Summer → Autumn → Long Dark**. Each season gives **6 tides**.
 
 - **Costs 1 tide:** a work shift; a market trip (any number of goods); a Harbor Exchange visit (any number of orders); buying or selling a business.
+- **Free first visits:** the first Market trip and the first Exchange visit each season cost no tide; later visits do. Investing pays off without frantic trading being free.
 - **Free:** moving around, talking, everything at the Bank (deposits, transfers, bills, loans), checking prices and news.
 
 **Season order (Spring, Summer, Autumn):**
@@ -189,7 +200,7 @@ Year: **Spring → Summer → Autumn → Long Dark**. Each season gives **6 tide
 | Tithe and care bills | Tithe 40◈/season for everyone; care bill 60◈/season for Caretaker. **Autopay** from the Purse at season end; late only if the Purse can't cover it (Standing hit + 20◈ late fee). Paying early by hand stays available. | Recurring bills |
 | Wages, dividends, sales | Credited when earned | Deposits |
 | Goods and shares | Debited when bought | Purchases |
-| Lending circle (Caretaker only) | 400◈ pot in Spring, paid back 100◈/season | Transfers between customers |
+| Lending circle (Caretaker only) | 400◈ pot in Spring, paid back 100◈/season (autopaid from the Purse at season end, last share at the Passage check; can be paid ahead). **It's a loan: what's still owed counts as debt for Passage.** A payment the Purse can't cover is missed (no Standing hit). | Transfers between customers |
 | Black Reef | Cash advance up to 300◈, 50% fee per season, no Standing check | Withdrawals |
 | Bank loan *(only if ahead)* | Needs Standing 620+; up to 1,000◈; 3%/season; equal repayments over remaining seasons; missed payment → −60 Standing + 20◈ fee | Loans |
 
@@ -210,7 +221,7 @@ Three levers: the tithe, the Vault rate, and **debasing the coin**. A debasement
 
 ### Passage rule
 
-Every debt must be settled first: Leviathan Credit, Bank and guild loans, and the Black Reef. Nobody borrows their way onto the ship.
+Every debt must be settled first: Leviathan Credit, Bank and guild loans, the Black Reef, unpaid bills, and **money still owed to the lending circle** (a loan from friends is still a loan). Nobody borrows their way onto the ship.
 
 ## Grand Market
 
@@ -360,6 +371,21 @@ Players learn from three things: **Scrolls** earned by doing, an in-world **Chro
 - [ ] Playtest and tune the numbers
 - [ ] Set the judge-mode seed
 
+## Frontend city (P3)
+
+Run from `frontend/`: `npm install`, then `npm run dev` (http://localhost:5173) and `npm run typecheck`.
+
+- **Art:** Ancient Greeks tileset (CC BY 4.0, credit required) for ground, temples, houses and stalls; Mucho Pixels Underwater pack for kelp, coral, ruins, wrecks, treasure and bubbles. The **raw packs live in `frontend/asset-packs/` and are gitignored**, because the Mucho Pixels licence forbids redistributing the files. Only the sheets the game uses are copied into `public/assets/city/`. Each teammate needs the packs locally only to add new sheets. Credits are in `CREDITS.md`.
+- **Frames:** every sprite is a named rect in `game/assets.ts` (`FRAMES.<sheet>.<name>`), registered as a texture frame in Boot. To use new art, add its rect there; don't hardcode coordinates elsewhere.
+- **Layout (Plato's Atlantis):** a 2240 × 2240 world. A central island, two rings of land, three rings of water (the outer one is the moat), four avenues (N/E/S/W) bridging the inner canals, and a ring road on each land ring. All radii live in `geometry.ts`; `groundAt(x, y)` says what's at any pixel and drives both the ground texture and placement checks.
+- **Rings by importance:** island = Council of Ten and Bank of the Tides; middle ring = Grand Market, Harbor Exchange, Guild Hall; outer ring = Drowned Bell, Lending Circle, Black Reef. Past the moat are "the wilds" (kelp forests, ruins, wrecks), which are scenery only: clicks there walk you to the moat's edge.
+- **Placement:** sprites are placed by their **foot** (bottom centre) and depth-sorted by y (overlay layers in `DEPTH` sit above objects + world height). Ring buildings stand just north of their ring road, and their door is the road point in front. Houses and vegetation are placed by a seeded search that only accepts open sand, so the city is identical on every load and nothing lands on a road or canal.
+- **Ground:** `ground.ts` paints the whole seabed once at boot (~1–2s), sampling sand and paver tiles from the Greek terrain sheet, so curves are clean pixel art rather than 16px steps.
+- **Underwater look** is all Phaser (`fx/underwater.ts`): a light-aqua multiply grade plus teal lift (bright turquoise, modelled on the team's reference image), two scrolling caustics layers, shimmer on the canals (masked to the water), a cobalt fade toward the top of the screen, slanted light shafts, bubbles and marine snow, fish schools, swaying kelp, glows on key buildings, and a soft vignette.
+- **Interaction:** click a building → the player walks there along the ring roads and avenues → `building-entered` fires → React shows the keeper's greeting (`ui/Dialogue.tsx`, placeholder for the real panels) → Leave fires `building-left`. Click the ground to walk; drag to pan; mouse wheel zooms 1×/2×/3× toward the cursor. The cursor is a round ring (gold over buildings, a bubble while dragging). Building ids match the engine's `Place` values where one exists.
+- **`?overview`** in the URL shows the whole map at once, for checking the layout.
+- **Placeholders:** the player (a code-drawn 12×20 diver) and fish, until a character pack is chosen. Swap `GENERATED.player` for a spritesheet with walk animations.
+
 ## Engine (P1)
 
 Python 3.9-compatible, standard library only. Run everything from `backend/`:
@@ -385,9 +411,9 @@ result.ledger    # LedgerEntries this action caused (push these to Nessie)
 ```
 
 - Illegal actions raise `ActionError(code, message)`. `code` is stable (e.g. `no_tides`, `insufficient_funds`, `debts_outstanding`); `message` is player-facing. Map it to HTTP 400.
-- Every action is a frozen dataclass in `engine/actions.py`. Tide actions: `Work`, `Rest`, `MarketTrip`, `ExchangeVisit`, `BuyBusiness`, `SellBusiness`; `EndSeason` spends all remaining tides. Everything else is free. `EndYear` is only legal in `Phase.FINAL_CALL`.
+- Every action is a frozen dataclass in `engine/actions.py`. Tide actions: `Work`, `Rest`, `MarketTrip`, `ExchangeVisit`, `BuyBusiness`, `SellBusiness`, except that the first `MarketTrip` and first `ExchangeVisit` each season are free (`game.visit_is_free(state, Place.MARKET | Place.HARBOR)` tells the UI); `EndSeason` spends all remaining tides. Everything else is free. `EndYear` is only legal in `Phase.FINAL_CALL`.
 - `dataclasses.asdict(state)` is JSON-ready (all enums are `str` enums). **Strip `state.HIDDEN_FIELDS` before sending state to the browser:** the scenario, debasement season, RNG step, scheduled event tides, pre-rolled voyages and whether a rumor is true.
-- UI previews without changing state: `market.quote`, `exchange.quote`, `money.passage_price`, `money.card_limit`, `scrolls.net_worth`.
+- UI previews without changing state: `market.quote`, `exchange.quote`, `money.passage_price`, `money.card_limit`, `money.circle_due`, `scrolls.net_worth`, `game.visit_is_free`.
 - **Ledger → Nessie:** every coin movement is a `LedgerEntry` with a `NessieOp` (deposit, withdrawal, purchase, bill, transfer, loan), an `Account` and optionally `to_account`. Bills appear twice: `pending=True` when posted, then again when paid. Starting balances are *not* in the ledger; `seed.py` should create accounts from `new_game`'s state.
 - `step(state, action)` is the in-place version for the simulator. Don't use it in the API.
 
@@ -406,7 +432,8 @@ All of these are in `config.py` or one obvious place in the engine; change them 
 - **Rumors** pre-roll the named house's voyage, then claim the true outcome with the class's accuracy (70%, Newcomer 90%). The price jumps ±10% on the rumor and reverts at season end if it was false.
 - **"Trade Boom year"** in the Oro row is treated as the Silk Boom scenario. In Stormy Seas, Oro and Silkwind take an extra ×0.9 in Autumn.
 - **Scenario clues:** Silk Boom from the Herald in Spring; Kelp Blight from Nerissa in Summer; Stormy Seas from Captain Oro in Summer. The debasement clue comes from Nerissa one season before it lands. Clues are `clue` log events with a `key` for `content/`.
-- **Event deck weights** are in `config.EVENT_DECK` (base weight, plus a boosted weight when the doc's "more likely when" holds). An event fires at most once a season. Lending-circle payments are bills (100◈ each season, four in total).
+- **Event deck weights** are in `config.EVENT_DECK` (base weight, plus a boosted weight when the doc's "more likely when" holds). An event fires at most once a season.
+- **The lending circle is a loan** (`LoanKind.CIRCLE`, 0% interest). By each season's end its balance must be at most 100◈ × the seasons left before the Long Dark; autopay covers the difference from the Purse, and if it can't, the payment is missed. Paying ahead lowers later dues.
 - **Scroll thresholds:** Bought Low = 20 kelp bought in Summer. Melting Coin = 1,000◈+ (Purse + Vault) when the debasement lands. Debt Spiral = 2 seasons paying ≥ the minimum but < 1.5× it while carrying a balance.
 - **Miss causes**, checked in this order: debt (paying it off is what kept them off the ship) → assets would have covered it (illiquid) → fell for the scam → no savings.
 
@@ -427,9 +454,11 @@ A sweep across every allowed knob (Spring Passage 900–1,600 at +6% or +8%, Exc
 
 1. **Trading costs a tide, and a tide pays 60◈.** A few hundred coin invested at +7–10% a season earns 30–50◈, less than the shift it costs to place the order. So diversified investing ends with *less* than saving in the Vault. Kelp storage is the only trade that clearly pays for its tide.
 2. **Luck is bigger than strategy.** Lucky salvage (+300◈, three times as likely for the Tidewalker) appears in 99% of worker escapes. Strategy differences are worth ~100–300◈ a year, about the same as one salvage or roof leak.
-3. **The circle pot buys Passage.** 98 of 122 Caretaker worker escapes buy Passage in Spring with the 400◈ pot (700 + 400 + a salvage > 1,200). The 300◈ still owed to the circle isn't counted as debt, so the Caretaker borrows their way onto the ship.
+3. **The circle pot bought Passage.** 98 of 122 Caretaker worker escapes bought Passage in Spring with the 400◈ pot (700 + 400 + a salvage > 1,200), because what was still owed to the circle wasn't counted as debt.
 
-Experiment (outside the allowed knobs): counting future circle payments as debt and halving salvage to 150◈ brings the worker to 2%, but diversified and thoughtful fall to about 0–1%. Luck was what carried them too. Hitting the targets needs investing to be worth more than a shift: for example, Exchange/Market visits that don't cost a tide (or one free visit a season), or more starting capital relative to wages.
+Experiment (outside the allowed knobs): counting future circle payments as debt and halving salvage to 150◈ brings the worker to 2%, but diversified and thoughtful fall to about 0–1%. Luck was what carried them too. Hitting the targets needs investing to be worth more than a shift.
+
+**Applied since (not yet simulated):** money owed to the circle now counts as debt (fixes cause 3), and the first Market trip and first Exchange visit each season are free (aimed at cause 1). Re-run the simulator and re-tune in the testing phase. The bots in `scripts/simulate.py` were written for paid visits, so check they use the free visit sensibly before trusting the numbers.
 
 ## Open questions
 

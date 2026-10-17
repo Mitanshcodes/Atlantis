@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
-from app.engine.state import BusinessKind, ClassId, EventKind, Good, House, Scenario, Season
+from app.engine.state import BusinessKind, ClassId, EventKind, Good, House, Place, Scenario, Season
 
 # --- Feature flags: "only if ahead" systems stay off until the core loop works end to end -------
 
@@ -21,6 +21,8 @@ FEATURE_BANK_LOAN = False
 # --- Time -----------------------------------------------------------------------------------------
 
 TIDES_PER_SEASON = 6
+# The first visits each season cost no tide; later visits and work still do.
+FREE_VISITS_PER_SEASON: Dict[Place, int] = {Place.MARKET: 1, Place.HARBOR: 1}
 HUNGRY_TIDE_PENALTY = 2
 MIN_TIDES = 1  # engine default: a season always has at least one tide
 

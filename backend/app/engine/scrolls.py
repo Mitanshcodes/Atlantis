@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from app import config
 from app.engine import business, exchange, market, money
-from app.engine.state import Account, BillKind, Ending, GameState, House, MissCause, NessieOp, Phase, ScrollId
+from app.engine.state import Account, Ending, GameState, House, LoanKind, MissCause, NessieOp, Phase, ScrollId
 
 
 def award(s: GameState, scroll: ScrollId) -> None:
@@ -53,6 +53,7 @@ def finish(s: GameState) -> None:
     """The Passage check after the last tide: board if you can, then decide the ending."""
     price = money.passage_price(s)
     money.autopay_bills(s)
+    money.check_circle(s)
     if s.passage_paid is None:
         _auto_board(s, price)
 
@@ -69,8 +70,7 @@ def finish(s: GameState) -> None:
             award(s, ScrollId.RICH_ON_PAPER)
 
     spec = money.class_spec(s)
-    circle_clear = not any(b.kind == BillKind.CIRCLE for b in s.bills)
-    if spec.circle_pot and not s.flags.circle_missed and circle_clear:
+    if spec.circle_pot and not s.flags.circle_missed and LoanKind.CIRCLE not in s.loans:
         award(s, ScrollId.CIRCLE_OF_TRUST)
     if _good_debt(s):
         award(s, ScrollId.GOOD_DEBT)

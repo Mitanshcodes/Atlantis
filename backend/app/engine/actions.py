@@ -1,7 +1,8 @@
 """Everything a player can do, as plain data, plus the error the engine raises for illegal moves.
 
-Actions that spend a tide: Work, Rest, MarketTrip, ExchangeVisit, BuyBusiness, SellBusiness.
-EndSeason spends all remaining tides. Everything else is free.
+Actions that spend a tide: Work, Rest, MarketTrip, ExchangeVisit, BuyBusiness, SellBusiness,
+except that the first MarketTrip and first ExchangeVisit each season are free
+(``config.FREE_VISITS_PER_SEASON``). EndSeason spends all remaining tides. Everything else is free.
 """
 
 from __future__ import annotations

@@ -72,7 +72,6 @@ class EventKind(str, Enum):
 class BillKind(str, Enum):
     TITHE = "tithe"
     CARE = "care"
-    CIRCLE = "circle"
     REPAIR = "repair"  # a roof leak nobody could pay for
 
 
@@ -80,6 +79,7 @@ class LoanKind(str, Enum):
     GUILD = "guild"
     BANK = "bank"
     BLACK_REEF = "black_reef"
+    CIRCLE = "circle"  # the lending-circle pot: a loan from friends is still a loan
 
 
 class BusinessKind(str, Enum):
@@ -154,6 +154,7 @@ LOAN_ACCOUNTS = {
     LoanKind.GUILD: Account.GUILD_LOAN,
     LoanKind.BANK: Account.BANK_LOAN,
     LoanKind.BLACK_REEF: Account.BLACK_REEF,
+    LoanKind.CIRCLE: Account.CIRCLE,
 }
 
 
@@ -319,6 +320,7 @@ class GameState:
     offers: List[Offer] = field(default_factory=list)
     event_tides: List[int] = field(default_factory=list)  # hidden; tides after which events fire
     fired_events: List[EventKind] = field(default_factory=list)  # this season
+    free_visits_used: List[Place] = field(default_factory=list)  # this season
 
     passage_paid: Optional[int] = None
     scrolls: List[ScrollId] = field(default_factory=list)
