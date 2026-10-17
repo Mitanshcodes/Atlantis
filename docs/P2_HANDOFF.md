@@ -55,7 +55,10 @@ and deposit creation worked, while transaction records did not update
 and transfers. P2 therefore records purchases as withdrawals and expands an
 internal transfer into paired withdrawal/deposit records. Atlantis remains the
 authoritative balance; the Ledger reconstructs a remote balance from confirmed
-Nessie records. The schema describes account/deposit/loan amounts as integers: fractional
+Nessie records. Loans can be created and read back without changing account
+balances. Bill creation returns an ID, but both individual and account-scoped
+bill reads currently return HTTP 400, so bill effects remain gated and visible
+as pending. The schema describes account/deposit/loan amounts as integers: fractional
 effects on those endpoints are rejected without rounding. Verify fractional
 support before relaxing that restriction; interest can produce fractional coin.
 
@@ -189,6 +192,11 @@ Local walkthrough: First of Their Line → work (+50) → save 100 → buy five 
 (-20) → reload → Purse 330, Vault 100, kelp 5. Open the Ledger and explain whether
 records are locally pending or remotely confirmed. Without a key, show only the
 workshop and never present it as a live Nessie demonstration.
+
+The same walkthrough was completed against production Nessie on October 17,
+2026: 13 resource/transaction records confirmed, both reconstructed balances
+matched, and no entry was pending, failed, or marked for review. Use a new run
+for the judge demo rather than depending on that synthetic smoke run.
 
 For the prize demonstration, complete the probe, connect P1, and use a tested
 winning seed/action sequence. Show wages, purchases, reserves, obligations, and
