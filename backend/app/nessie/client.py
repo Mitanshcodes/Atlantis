@@ -43,6 +43,8 @@ class NessieClient:
                                   retryable=response.status_code == 429 or (method == 'GET' and response.status_code >= 500))
             if response.is_redirect:
                 raise RemoteError('Unexpected Nessie redirect; verify configured host')
+            if method == 'PUT' and response.status_code == 204:
+                return {}
             try:
                 return response.json()
             except ValueError:
@@ -53,3 +55,6 @@ class NessieClient:
 
     def post(self, path, payload):
         return self.request('POST', path, payload)
+
+    def put(self, path, payload):
+        return self.request('PUT', path, payload)

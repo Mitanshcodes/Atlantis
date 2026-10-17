@@ -64,6 +64,9 @@ class Sync:
             record = self.client.get(op.read_prefix + '/' + receipt['remote_id'])
             self.confirm(row, op, record)
             return
+        if op.remote_id:
+            self.confirm(row, op, self.client.get(op.path))
+            return
         records = entity(self.client.get(op.collection))
         if not isinstance(records, list):
             raise RemoteError('Nessie lookup did not return a complete record list', ambiguous=True)
@@ -85,7 +88,7 @@ class Sync:
                 if row['status'] == 'failed' or row['retry_at'] > time.time():
                     continue
                 e = MoneyEffect.model_validate_json(row['body'])
-                if e.kind in ('loan', 'bill') and not self.settings.obligations_verified:
+                if e.kind in ('loan', 'bill', 'loan_update', 'bill_update') and not self.settings.obligations_verified:
                     self.update(row['seq'], 'pending', 'Bill/loan balance behavior needs live capability verification', delay=30)
                     continue
                 attempted = False
@@ -100,7 +103,10 @@ class Sync:
                         with self.store.connect() as db:
                             db.execute("UPDATE effects SET status='sending',attempts=attempts+1 WHERE seq=?", (row['seq'],))
                         attempted = True
-                        created = entity(self.client.post(op.path, op.body))
+                        created = entity(self.client.post(op.path, op.body)) if op.method == 'POST' else None
+                        if op.method == 'PUT':
+                            self.client.put(op.path, op.body)
+                            created = {'_id': op.remote_id}
                         if not isinstance(created, dict) or not created.get('_id'):
                             raise RemoteError('Create response omitted its resource ID', ambiguous=True)
                         # Persist the ID before the follow-up GET. A failed GET must never repeat the POST.

@@ -16,6 +16,8 @@ class Operation:
     marker: str
     resource_scope: str | None = None
     resource_name: str | None = None
+    method: str = 'POST'
+    remote_id: str | None = None
 
 def operation(store, run_id, effect):
     e = effect
@@ -27,11 +29,21 @@ def operation(store, run_id, effect):
             raise ValueError(f'Missing resource dependency: {name}')
         return result
     amount = coins(e.amount)
-    if e.kind in ('account', 'deposit', 'loan'):
+    if e.kind in ('account', 'deposit', 'loan', 'loan_update'):
         # Current official schema declares these as integers. Never round away coin.
         if e.amount % 100:
             raise ValueError('This Nessie endpoint documents whole coins only; verify fractional support before enabling this effect')
         amount = e.amount // 100
+    if e.kind in ('bill_update', 'loan_update'):
+        remote_id = account(e.source)
+        prefix = '/bills' if e.kind == 'bill_update' else '/loans'
+        allowed = ('status', 'payee', 'payment_date', 'recurring_date') if e.kind == 'bill_update' else ('type', 'status', 'credit_score', 'monthly_payment')
+        body = {key: value for key, value in e.payload.items() if key in allowed}
+        field = 'nickname' if e.kind == 'bill_update' else 'description'
+        body[field] = marker
+        body['payment_amount' if e.kind == 'bill_update' else 'amount'] = amount
+        return Operation(prefix + '/' + remote_id, body, prefix + '/' + remote_id, prefix, field, marker,
+                         method='PUT', remote_id=remote_id)
     if e.kind == 'customer':
         body = {'first_name': 'Atlantis', 'last_name': marker, 'address': ADDRESS}
         return Operation('/customers', body, '/customers', '/customers', 'last_name', marker, run_id, e.destination)
