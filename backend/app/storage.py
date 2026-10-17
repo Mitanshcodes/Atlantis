@@ -14,6 +14,7 @@ class Store:
               retry_at REAL DEFAULT 0, UNIQUE(run_id,id));
             CREATE TABLE IF NOT EXISTS resources(scope TEXT, name TEXT, remote_id TEXT, PRIMARY KEY(scope,name));
             CREATE TABLE IF NOT EXISTS cache(key TEXT PRIMARY KEY, body TEXT);
+            CREATE TABLE IF NOT EXISTS events(seq INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT, season TEXT, text TEXT);
             ''')
 
     @contextmanager

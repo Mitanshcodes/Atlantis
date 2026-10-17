@@ -54,10 +54,14 @@ def create_app(settings=None, client=None, engine_adapter=None, background=True)
     @app.post('/api/runs', status_code=201)
     def create_run(request: RunRequest):
         transition = Transition.model_validate(rules.new_game(request.class_id, request.seed))
+        if transition.state.development != bool(getattr(rules, 'DEVELOPMENT', False)):
+            raise HTTPException(500, 'Engine development flag does not match its adapter')
         run_id = str(uuid4())
         with store.connect() as db:
             db.execute('INSERT INTO runs VALUES(?,?)', (run_id, transition.state.model_dump_json()))
             Store.effects(db, run_id, initial_effects(transition.state) + transition.effects)
+            db.executemany('INSERT INTO events(run_id,season,text) VALUES(?,?,?)',
+                           [(run_id, transition.state.season, event) for event in transition.events])
         return {'run_id': run_id, 'state': transition.state, 'events': transition.events}
 
     @app.get('/api/runs/{run_id}')
@@ -77,6 +81,8 @@ def create_app(settings=None, client=None, engine_adapter=None, background=True)
                 return json.loads(previous['response'])
             if state.version != action.expected_version:
                 raise HTTPException(409, 'State changed; refresh before submitting a new action')
+            if state.development != bool(getattr(rules, 'DEVELOPMENT', False)):
+                raise HTTPException(409, 'This run belongs to a different engine mode; start a new journey')
             try:
                 transition = Transition.model_validate(rules.apply_action(state, action))
             except ValueError as exc:
@@ -89,6 +95,8 @@ def create_app(settings=None, client=None, engine_adapter=None, background=True)
             response = {'run_id': run_id, 'state': transition.state.model_dump(), 'events': transition.events}
             db.execute('UPDATE runs SET state=? WHERE id=?', (transition.state.model_dump_json(), run_id))
             Store.effects(db, run_id, transition.effects)
+            db.executemany('INSERT INTO events(run_id,season,text) VALUES(?,?,?)',
+                           [(run_id, state.season, event) for event in transition.events])
             db.execute('INSERT INTO actions VALUES(?,?,?,?)',
                        (run_id, action.action_id, action.model_dump_json(), json.dumps(response)))
         return response
@@ -100,17 +108,20 @@ def create_app(settings=None, client=None, engine_adapter=None, background=True)
         return {'entries': store.ledger(run_id), 'live': sync.live, 'balances': sync.balances(run_id, state)}
 
     @app.get('/api/runs/{run_id}/chronicle')
-    def get_chronicle(run_id: str):
+    def get_chronicle(run_id: str, season: str | None = None):
         with store.connect() as db:
             state = read_run(db, run_id)
-            responses = db.execute('SELECT response FROM actions WHERE run_id=? ORDER BY rowid', (run_id,)).fetchall()
+            season = season or state.season
+            if season not in ('Spring', 'Summer', 'Autumn', 'Long Dark'):
+                raise HTTPException(422, 'Unknown season')
+            rows = db.execute('SELECT text FROM events WHERE run_id=? AND season=? ORDER BY seq', (run_id, season)).fetchall()
         # Only server-recorded engine events go to the narrator; never browser-supplied facts.
-        events = [event for row in responses for event in json.loads(row['response'])['events']]
-        key = f'chronicle:{run_id}:{state.version}'
+        events = [row['text'] for row in rows]
+        key = f'chronicle:{run_id}:{season}:{state.version}'
         cached = store.cached(key)
         if cached:
             return cached
-        result = chronicle(state.season, events)
+        result = chronicle(season, events)
         store.cache(key, result)
         return result
 

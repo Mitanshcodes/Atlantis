@@ -3,6 +3,8 @@ import importlib
 import os
 from .models import Action, MoneyEffect, State, Transition
 
+DEVELOPMENT = True
+
 CLASSES = {
     'newcomer': (90000, None, 0, None),
     'first_of_their_line': (40000, 0, 60000, 580),
