@@ -4,7 +4,7 @@ Hackathon game about personal finance. Atlantis sinks at the end of the year; th
 
 - **Target prizes:** Technica *Deep Sea Gamechanger* (gamification) and Capital One *Best Use of Nessie*.
 - **Framing:** everyone starts Atlantis from a different place (four classes, each built on a real financial barrier).
-- **Source of truth:** the design doc "Atlantis: Game Design" (Oct 17, 2026, @Mitansh). This file summarizes it. If they disagree, the doc wins; ask before changing the design.
+- **Source of truth:** the design doc "Atlantis: Game Design" (Oct 17, 2026, @Mitansh) as amended by **Balance pass v2** (Passage, debasement, Exchange, class starts, bill autopay, Credit Built). This file reflects both. If this file and the doc disagree on a v2 number, v2 wins; otherwise the doc wins. Ask before changing the design.
 
 ## Stack
 
@@ -43,11 +43,15 @@ Atlantis/
 │   │   ├── models.py                  [P2]  game state + actions (shared contract)
 │   │   ├── config.py                  [P1]  all tuning numbers
 │   │   ├── engine/                    [P1]
-│   │   │   ├── game.py                [P1]  new game, actions, season loop
+│   │   │   ├── game.py                [P1]  new game, actions, season loop (public entry point)
+│   │   │   ├── state.py               [P1]  enums + GameState dataclasses (engine's own state)
+│   │   │   ├── actions.py             [P1]  action dataclasses + ActionError
+│   │   │   ├── rng.py                 [P1]  seeded RNG stored in the state
 │   │   │   ├── market.py              [P1]  kelp, pearls, prices
 │   │   │   ├── exchange.py            [P1]  shipping houses, Tide Index
 │   │   │   ├── money.py               [P1]  Purse, Vault, credit, Standing, Black Reef
 │   │   │   ├── events.py              [P1]  event deck, scenarios
+│   │   │   ├── business.py            [P1]  businesses (only if ahead)
 │   │   │   └── scrolls.py             [P1]  Scrolls, endings
 │   │   ├── nessie/                    [P2]
 │   │   │   ├── client.py              [P2]  Nessie API calls
@@ -61,9 +65,9 @@ Atlantis/
 │   │       ├── scenarios.json         [M]
 │   │       ├── scrolls.json           [M]
 │   │       └── npcs.json              [M]
-│   ├── tests/                         [P1]
+│   ├── tests/                         [P1]  pytest: one file per engine module + fuzz tests
 │   └── scripts/
-│       └── simulate.py                [P1]  balance testing
+│       └── simulate.py                [P1]  balance testing (bot strategies, escape rates)
 └── frontend/
     ├── package.json                   [Shared]
     ├── public/assets/                 [P3]  city/ sprites/ ui/ audio/
@@ -96,7 +100,7 @@ Atlantis/
                 └── Ledger.tsx         [P2]  live Nessie log
 ```
 
-The Python packages (`app/`, `engine/`, `nessie/`, `ai/`) also have empty `__init__.py` files, owned by whoever owns the folder. Empty asset and test folders hold a `.gitkeep`.
+The Python packages (`app/`, `engine/`, `nessie/`, `ai/`) also have empty `__init__.py` files, owned by whoever owns the folder. Empty asset folders hold a `.gitkeep`.
 
 **How the layers fit:** the frontend sends an action → `main.py` validates it against `models.py` → `engine/` computes the new state (pure, seeded) → `nessie/sync.py` posts the resulting money movements to Nessie → the new state goes back to the frontend → `store.ts` updates and React re-renders. `ai/chronicle.py` turns the engine's event log into prose at season end, falling back to a template.
 
@@ -146,8 +150,8 @@ Each class is a separate seeded Nessie customer.
 
 | Class | Job (pay/shift) | Barrier | Strength | Starts with | Nessie setup | Starting Standing |
 |---|---|---|---|---|---|---|
-| **Newcomer** | Dock trader, 60◈ | Unrated: no Standing history, so no Leviathan card or loans until they open a secured card | Surface-port rumors are right 90% instead of 70% | 900◈ | Checking only | Unrated (500 once secured card opens) |
-| **First of Their Line** | Guild apprentice, 50◈, +10◈ each season | No family savings; owes a 600◈ guild loan | Pay grows every season; Ione and Sefa explain one extra factor in every decision | 400◈ | Checking, Savings, guild loan | 580 |
+| **Newcomer** | Dock trader, 60◈ | Unrated: no Standing history, so no Leviathan card or loans until they open a secured card | Surface-port rumors are right 90% instead of 70% | 500◈ | Checking only | Unrated (500 once secured card opens) |
+| **First of Their Line** | Guild apprentice, 50◈, +10◈ each season | No family savings; owes a 500◈ guild loan | Pay grows every season; Ione and Sefa explain one extra factor in every decision | 800◈ ("800◈, but 500◈ of it is owed to the guild") | Checking, Savings, guild loan | 580 |
 | **Caretaker** | Part-time kelp farmer, 55◈ | Care duties take 2 of 6 tides in Summer and the Long Dark; 60◈ care bill every season | Takes the first 400◈ pot in Old Maro's lending circle | 700◈ | Checking, Savings, extra recurring bill | 620 |
 | **Tidewalker** | Salvage diver, 0–120◈ random (avg 60◈) | Irregular pay; can't open a Vault until Standing 550; lives in outer ring, so Grin's offers appear more often | Lucky salvage is 3× as likely | 500◈ | Checking with irregular deposits, no Savings | 540 |
 
@@ -181,8 +185,8 @@ Year: **Spring → Summer → Autumn → Long Dark**. Each season gives **6 tide
 | Vault | 2%/season; safe from theft and scams | Savings |
 | Leviathan Credit | 7.5%/season (30%/yr); minimum payment 10% of balance; missed minimum → Standing hit + 20◈ late fee; purchases over limit are declined | Credit card |
 | Secured card (Newcomer) | Lock 200◈ in the Vault → Ione issues a 200◈ starter Leviathan card | Savings + credit card |
-| Guild loan (First of Their Line) | 600◈ at 1%/season, all due before Passage; a simple bill | Loans |
-| Tithe and care bills | Tithe 40◈/season for everyone; care bill 60◈/season for Caretaker | Recurring bills |
+| Guild loan (First of Their Line) | 500◈ at 1%/season, all due before Passage; a simple bill | Loans |
+| Tithe and care bills | Tithe 40◈/season for everyone; care bill 60◈/season for Caretaker. **Autopay** from the Purse at season end; late only if the Purse can't cover it (Standing hit + 20◈ late fee). Paying early by hand stays available. | Recurring bills |
 | Wages, dividends, sales | Credited when earned | Deposits |
 | Goods and shares | Debited when bought | Purchases |
 | Lending circle (Caretaker only) | 400◈ pot in Spring, paid back 100◈/season | Transfers between customers |
@@ -202,7 +206,7 @@ Best possible gain ≈ +30/season, so building credit visibly takes the whole ye
 
 ### Council of Ten
 
-Three levers: the tithe, the Vault rate, and **debasing the coin**. A debasement raises goods prices and the Passage price by 15%; shares and upkeep are unchanged. It lands in **Summer or Autumn**, varying per run.
+Three levers: the tithe, the Vault rate, and **debasing the coin**. A debasement raises goods prices, the Passage price **and share prices** by 15%; the Purse, Vault, debts and upkeep don't move (real inflation lifts assets and melts cash). It lands in **Summer or Autumn**, varying per run.
 
 ### Passage rule
 
@@ -231,13 +235,14 @@ Players buy shares in shipping houses. One visit = 1 tide, whatever orders are p
 
 | House | Start price | Voyage success | Win / loss | Dividend | Moves per tide | Teaches |
 |---|---|---|---|---|---|---|
-| Oro & Daughters | 50◈ | 90% (95% in Summer of a Trade Boom year) | +8% / −15% | 2◈/share, only on success | ±2% | Blue chips, dividends |
-| Leviathan Line (Dax) | 40◈ | 70% | +30% / −40% | None | ±6% | Leverage, boom and bust |
+| Oro & Daughters | 50◈ | 90% (95% in Summer of a Trade Boom year) | +8% / −12% | 1◈/share, only on success | ±2% | Blue chips, dividends (~+8%/season) |
+| Leviathan Line (Dax) | 40◈ | 70% | +30% / −35% | None | ±6% | Leverage, boom and bust (~+10%/season) |
 | Deepcoral Salvage | 20◈ | 10% jackpot | +150% / −20% | None | ±8% | Lottery thinking (negative EV) |
-| The Tide Index | Average of the three | Follows the three | Follows the three | Passes through | Average | Diversification |
+| The Tide Index | 42.5◈ (basket) | Follows the basket | Follows the basket | Passes through | Weighted | Diversification (~+7%/season) |
 | Silkwind Trading *(only if ahead)* | 30◈ | 80% | +20% / −25% | 1◈, only on success | ±4% | Seasonality |
 
-- Tide Index charges a **1% fee each season**.
+- The Tide Index is a basket worth 45% Oro / 45% Leviathan / 10% Deepcoral at the start, less a **1% fee each season**.
+- Deepcoral's average return must stay below zero (a test enforces it).
 - Each house shows: price chart, route, captain's record (last four voyages), storm risk this season, dividend.
 - **Storm risk** multiplies every success chance: ×1 Spring/Summer, ×0.85 Autumn (×0.7 in a Stormy Seas year). No voyages in the Long Dark.
 
@@ -308,7 +313,7 @@ Players learn from three things: **Scrolls** earned by doing, an in-world **Chro
 | Fire Sale | Sell an asset at a loss in the Long Dark | Forced selling |
 | Siren Song | Fall for the Pearl Exchange | Scams |
 | Read the Ledger | Catch and dispute a fraudulent charge | Fraud |
-| Credit Built | Take Standing from Unrated to 600 | Building credit |
+| Credit Built | Take Standing from Unrated to 580 | Building credit |
 | Good Debt | Earn more from a loan-funded business than the loan costs | Leverage, ROI |
 | Circle of Trust | Never miss a circle payment, even in the Long Dark | Community finance |
 
@@ -325,11 +330,12 @@ Players learn from three things: **Scrolls** earned by doing, an in-world **Chro
 
 | | Spring | Summer | Autumn | Long Dark |
 |---|---|---|---|---|
-| Passage price | 3,000◈ | 3,600◈ | 4,300◈ | 5,200◈ |
+| Passage price | 1,200◈ | 1,285◈ | 1,375◈ | 1,470◈ |
 
-- Passage prices are **before** debasement, which adds 15% from the season it lands.
-- **The check that matters:** working every tide all year and saving everything should end near 1,900◈, far short of Passage. If wages alone can reach it, raise the price.
-- **Target:** a thoughtful first-time player escapes ~1 in 3 runs; escaping with wealth is rare. All cash, all Deepcoral, or ignoring the news should usually miss the ship.
+- **The rule every number obeys:** Passage is the game's inflation. Over a year, Vault < Passage growth ≈ diversified investing < good concentrated bets. Cash loses ground slowly; diversified keeps pace; concentrated bets can beat it with real risk; work alone never reaches Passage; Deepcoral loses on average.
+- Passage rises ~7% a season, before debasement, which adds 15% from the season it lands (Long Dark ≈ 1,690◈).
+- **Targets** (escape rate averaged across classes): worker (wages only) 0%; all cash < 5%; gambler (all Deepcoral) 5–10%; kelp trader 15–25%; diversified 25–35%; thoughtful 33–40%. The thoughtful bot must escape 20–45% for **every** class.
+- **Tuning knobs, in order, within ranges:** Passage base (Spring 900–1,600, +6–8% a season); Exchange win/loss sizes (±3 points each, Deepcoral average < 0); class start coin (±200◈). Never change wages; work-only must stay at 0%.
 - **Simulator:** since the engine is pure functions, a script plays 1,000 seeded runs per class with bot strategies (**all cash, kelp trader, diversified, gambler**) and prints escape rates. Use it to tune and quote the results on Devpost.
 - Final tuning: Saturday night, seeded runs, one per class.
 
@@ -354,14 +360,78 @@ Players learn from three things: **Scrolls** earned by doing, an in-world **Chro
 - [ ] Playtest and tune the numbers
 - [ ] Set the judge-mode seed
 
-## Ambiguities to settle before implementing
+## Engine (P1)
 
-These aren't decided in the doc. Ask instead of guessing:
+Python 3.9-compatible, standard library only. Run everything from `backend/`:
 
-- **Long Dark timing:** do interest, minimum payments and Standing updates run at Long Dark open, or not at all? Is the circle's 4th payment due at Long Dark open?
-- **Hungry season in the Long Dark:** kelp posts at Long Dark open. If that season goes hungry, does it cut the Long Dark's own tides?
-- **Credit Built may be unreachable:** Newcomer starts at 500, best gain is ~+30/season, and there are only ~3 Standing updates, so they top out around 590 < 600.
-- **Purse at the Harbor:** is Passage paid from Purse only (transfer from Vault first, free at the Bank)?
-- **"Your coin"** (roof leak, ending's "◈ left"): Purse only, Purse + Vault, or net worth including shares and goods?
+```
+python3 -m pytest                      # all engine tests (~1s)
+python3 -m scripts.simulate            # 300 seeded runs per class per bot
+python3 -m scripts.simulate --runs 1000 --bots thoughtful --classes newcomer
+```
+
+**Using the engine (for P2):**
+
+```python
+from app.engine.game import new_game, apply
+from app.engine.actions import Work, MarketTrip, Order, ActionError
+from app.engine.state import ClassId, Good
+
+state = new_game(ClassId.NEWCOMER, seed=42)
+result = apply(state, MarketTrip((Order(Good.KELP, 20),)))   # pure: `state` is untouched
+result.state     # new GameState
+result.events    # LogEvents this action caused (for UI, Chronicle)
+result.ledger    # LedgerEntries this action caused (push these to Nessie)
+```
+
+- Illegal actions raise `ActionError(code, message)`. `code` is stable (e.g. `no_tides`, `insufficient_funds`, `debts_outstanding`); `message` is player-facing. Map it to HTTP 400.
+- Every action is a frozen dataclass in `engine/actions.py`. Tide actions: `Work`, `Rest`, `MarketTrip`, `ExchangeVisit`, `BuyBusiness`, `SellBusiness`; `EndSeason` spends all remaining tides. Everything else is free. `EndYear` is only legal in `Phase.FINAL_CALL`.
+- `dataclasses.asdict(state)` is JSON-ready (all enums are `str` enums). **Strip `state.HIDDEN_FIELDS` before sending state to the browser:** the scenario, debasement season, RNG step, scheduled event tides, pre-rolled voyages and whether a rumor is true.
+- UI previews without changing state: `market.quote`, `exchange.quote`, `money.passage_price`, `money.card_limit`, `scrolls.net_worth`.
+- **Ledger → Nessie:** every coin movement is a `LedgerEntry` with a `NessieOp` (deposit, withdrawal, purchase, bill, transfer, loan), an `Account` and optionally `to_account`. Bills appear twice: `pending=True` when posted, then again when paid. Starting balances are *not* in the ledger; `seed.py` should create accounts from `new_game`'s state.
+- `step(state, action)` is the in-place version for the simulator. Don't use it in the API.
+
+**Engine conventions:** coin is always an `int` (rounded halves up with `money.coin`); prices are floats. All numbers come from `config.X` read at call time, so tests monkeypatch config. Randomness only through `rng.rng(state)`, which derives a generator from `(seed, rng_step)`. "Only if ahead" systems sit behind `config.FEATURE_SILK`, `FEATURE_BUSINESSES` and `FEATURE_BANK_LOAN`. They're all implemented and tested, and off by default.
+
+### Engine decisions (gaps in the doc, filled with defaults)
+
+All of these are in `config.py` or one obvious place in the engine; change them freely.
+
+- **Long Dark:** bills, kelp and business profit post at its open. No interest, minimum check, or Standing update happens in the Long Dark (it has no season end). Its bills must be paid before Passage, like any debt.
+- **Final call:** when the Long Dark's tides run out, the game enters `FINAL_CALL`. Free actions still work (pay debts, move Vault coin, buy Passage), then `EndYear` runs the Passage check. If the player has the coin (Purse + Vault) and owes nothing, the check boards them automatically.
+- **Hunger:** a hungry season costs 2 tides next season. Long Dark hunger (kelp eaten at its open) costs 2 tides immediately and stacks with an Autumn hunger. Every season keeps at least 1 tide.
+- **Bills autopay** from the Purse at season end (oldest first, before the household eats) and at the final Passage check. A bill the Purse can't cover is late: +20◈ fee, still owed, −40 Standing for a tithe, a missed circle payment for the circle. Any late bill makes the season "not clean" (no +15).
+- **Card minimum** is set at each season end (10% of the balance after interest) and checked at the next season end. Everyone rated starts with a Leviathan card (limit by Standing). The Market and Exchange take Purse coin only; the card covers kelp shortfalls, roof leaks and business upkeep.
+- **Kelp shortfall** buys from Purse then card, never the Vault. **Roof leak** pays Purse → Vault → card, and anything left becomes a repair bill. "Your coin" for the roof leak and the endings means Purse + Vault.
+- **Rumors** pre-roll the named house's voyage, then claim the true outcome with the class's accuracy (70%, Newcomer 90%). The price jumps ±10% on the rumor and reverts at season end if it was false.
+- **"Trade Boom year"** in the Oro row is treated as the Silk Boom scenario. In Stormy Seas, Oro and Silkwind take an extra ×0.9 in Autumn.
+- **Scenario clues:** Silk Boom from the Herald in Spring; Kelp Blight from Nerissa in Summer; Stormy Seas from Captain Oro in Summer. The debasement clue comes from Nerissa one season before it lands. Clues are `clue` log events with a `key` for `content/`.
+- **Event deck weights** are in `config.EVENT_DECK` (base weight, plus a boosted weight when the doc's "more likely when" holds). An event fires at most once a season. Lending-circle payments are bills (100◈ each season, four in total).
+- **Scroll thresholds:** Bought Low = 20 kelp bought in Summer. Melting Coin = 1,000◈+ (Purse + Vault) when the debasement lands. Debt Spiral = 2 seasons paying ≥ the minimum but < 1.5× it while carrying a balance.
+- **Miss causes**, checked in this order: debt (paying it off is what kept them off the ship) → assets would have covered it (illiquid) → fell for the scam → no savings.
+
+### Known balance problems (need a design call)
+
+Balance pass v2, 1,000 seeded runs per class per bot (`python3 -m scripts.simulate --runs 1000`). Escape rate averaged across classes:
+
+| Bot | Target | v2 result |
+|---|---|---|
+| worker (wages only) | 0% | 10% |
+| all cash (Vault saver) | < 5% | 17% |
+| gambler (all Deepcoral) | 5–10% | 16% |
+| kelp trader | 15–25% | 22% |
+| diversified | 25–35% | 1% |
+| thoughtful | 33–40% | 7% (Newcomer 2%, First of Their Line 2%, Caretaker 10%, Tidewalker 15%) |
+
+A sweep across every allowed knob (Spring Passage 900–1,600 at +6% or +8%, Exchange wins/losses ±3 points, start coin ±200) found no setting near the targets. The best still had the worker at 7–13%, diversified at about 2% and thoughtful at about 13%. Three structural causes:
+
+1. **Trading costs a tide, and a tide pays 60◈.** A few hundred coin invested at +7–10% a season earns 30–50◈, less than the shift it costs to place the order. So diversified investing ends with *less* than saving in the Vault. Kelp storage is the only trade that clearly pays for its tide.
+2. **Luck is bigger than strategy.** Lucky salvage (+300◈, three times as likely for the Tidewalker) appears in 99% of worker escapes. Strategy differences are worth ~100–300◈ a year, about the same as one salvage or roof leak.
+3. **The circle pot buys Passage.** 98 of 122 Caretaker worker escapes buy Passage in Spring with the 400◈ pot (700 + 400 + a salvage > 1,200). The 300◈ still owed to the circle isn't counted as debt, so the Caretaker borrows their way onto the ship.
+
+Experiment (outside the allowed knobs): counting future circle payments as debt and halving salvage to 150◈ brings the worker to 2%, but diversified and thoughtful fall to about 0–1%. Luck was what carried them too. Hitting the targets needs investing to be worth more than a shift: for example, Exchange/Market visits that don't cost a tide (or one free visit a season), or more starting capital relative to wages.
+
+## Open questions
+
 - **The 1,900◈ wage check** only roughly holds for the Newcomer; other classes land much lower on wages alone. Confirm that's intended.
-- **Black Reef ↔ Nessie "Withdrawals"** and **Exchange/Market ↔ Nessie mapping**: confirm how a cash advance and share sales are modeled.
+- **Nessie mapping:** a Black Reef advance is emitted as a `withdrawal` (per the doc's table) with `to_account=purse`. P2 should confirm that maps sensibly onto Nessie.
