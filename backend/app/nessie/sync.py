@@ -3,7 +3,7 @@ import hashlib
 import json
 import threading
 import time
-from ..models import MoneyEffect
+from ..models import BalanceEvidence, MoneyEffect
 from .client import RemoteError, minor_units
 from .operations import operation
 
@@ -41,6 +41,9 @@ class Sync:
         receipt = {'remote_id': record['_id'], 'path': op.read_prefix + '/' + record['_id'], 'record': record}
         if record.get(op.marker_field) != op.marker:
             raise RemoteError('Receipt correlation does not match this effect', ambiguous=True)
+        for field in ('amount', 'payment_amount', 'payee_id', 'merchant_id'):
+            if field in op.body and record.get(field) != op.body[field]:
+                raise RemoteError('Receipt values do not match the intended money movement', ambiguous=True)
         if record.get('status') in ('cancelled', 'failed', 'rejected'):
             self.update(row['seq'], 'failed', 'Remote transaction was rejected', receipt)
             return
@@ -127,6 +130,7 @@ class Sync:
                 continue
             remote_id = self.store.resource(run_id, name)
             remote = None
+            cached = self.store.cached(f'balance:{run_id}:{name}')
             if self.live and settled and remote_id:
                 try:
                     record = entity(self.client.get('/accounts/' + remote_id))
@@ -134,6 +138,8 @@ class Sync:
                     self.store.cache(f'balance:{run_id}:{name}', {'remote': remote, 'at': time.time()})
                 except (RemoteError, KeyError, ValueError, TypeError):
                     pass
-            result[name] = {'expected': expected, 'remote': remote,
-                            'matches': remote == expected if remote is not None else None}
+            result[name] = BalanceEvidence(expected=expected, remote=remote,
+                            matches=remote == expected if remote is not None else None,
+                            cached_remote=cached['remote'] if cached and remote is None else None,
+                            cached_at=cached['at'] if cached and remote is None else None).model_dump()
         return result

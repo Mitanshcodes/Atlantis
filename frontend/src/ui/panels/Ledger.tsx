@@ -7,6 +7,7 @@ export default function Ledger({ open, onClose, ledger }: { open: boolean; onClo
       <p className="note">{ledger.live ? 'Connected to Nessie. Pending entries have not yet been confirmed.' : 'Local workshop mode. Entries are saved for later sync; no remote transactions have been claimed.'}</p>
       <div className="balance-checks">{Object.entries(ledger.balances).map(([name, value]) => <p key={name}>
         <strong>{name === 'purse' ? 'Purse' : 'Vault'}:</strong> {coin(value.expected)} locally · {value.remote === null ? 'remote verification pending' : `${coin(value.remote)} remotely · ${value.matches ? 'matched' : 'difference needs review'}`}
+        {value.cached_remote !== null && <small> · Last seen {coin(value.cached_remote)}{value.cached_at ? ` at ${new Date(value.cached_at * 1000).toLocaleTimeString()}` : ''} (cached)</small>}
       </p>)}</div>
       <ol className="receipt-list">{ledger.entries.map(entry => <li key={entry.seq}>
         <div className="receipt-heading"><strong>{entry.body.reason.replaceAll('_', ' ')}</strong>

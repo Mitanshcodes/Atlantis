@@ -50,3 +50,10 @@ class Transition(Contract):
     state: State
     events: list[str] = Field(default_factory=list)
     effects: list[MoneyEffect] = Field(default_factory=list)
+
+class BalanceEvidence(Contract):
+    expected: int
+    remote: int | None = None
+    matches: bool | None = None
+    cached_remote: int | None = None
+    cached_at: float | None = None

@@ -25,5 +25,6 @@ export interface LedgerEntry {
 }
 export interface Ledger {
   entries: LedgerEntry[]; live: boolean;
-  balances: Record<string, { expected: number; remote: number | null; matches: boolean | null }>;
+  balances: Record<string, { expected: number; remote: number | null; matches: boolean | null;
+    cached_remote: number | null; cached_at: number | null }>;
 }
