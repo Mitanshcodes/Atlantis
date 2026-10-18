@@ -25,8 +25,8 @@ export const api = {
   /** The season's report card (whole coin, not hundredths). */
   report: (id: string, season: string) =>
     request<SeasonReport>(`/runs/${encodeURIComponent(id)}/report?season=${encodeURIComponent(season)}`),
-  /** Chelo's note on the report: OpenAI, or a hand-written line. */
+  /** Chelo's feedback on the report, as bullets: OpenAI, or hand-written. */
   reportNote: (id: string, season: string) =>
-    request<{ text: string; source: 'openai' | 'template' }>(
+    request<{ bullets: string[]; source: 'openai' | 'template' }>(
       `/runs/${encodeURIComponent(id)}/report/note?season=${encodeURIComponent(season)}`),
 };

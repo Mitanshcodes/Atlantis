@@ -9,6 +9,7 @@ import type { Building } from "../../game/buildings";
 import type { ActionInput } from "../../store";
 import type { Order, Run } from "../../types";
 import { BUILDING_INFO, ROOM_MIRROR, SHOCKS } from "../copy";
+import { MirrorButton } from "../Mirror";
 import { coins, fmt, toMinor, viewOf, type GameView } from "../view";
 
 export interface RoomProps {
@@ -17,7 +18,8 @@ export interface RoomProps {
   act: (input: ActionInput) => Promise<void>;
 }
 
-export const can = (run: Run, kind: string) => run.state.available_actions.includes(kind);
+export const can = (run: Run, kind: string) =>
+  run.state.available_actions.includes(kind);
 export const view = (run: Run): GameView => viewOf(run.state);
 
 export function Room({
@@ -39,7 +41,10 @@ export function Room({
   }, [onLeave]);
   const titleId = useId();
   return (
-    <div className="room-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onLeave()}>
+    <div
+      className="room-backdrop"
+      onMouseDown={(e) => e.target === e.currentTarget && onLeave()}
+    >
       <section className="panel room" role="dialog" aria-labelledby={titleId}>
         <header className="room__head">
           <div>
@@ -48,13 +53,22 @@ export function Room({
               {building.name}
             </h2>
           </div>
-          <button className="room__close" onClick={onLeave} aria-label={`Leave ${building.name}`}>
+          <button
+            className="room__close"
+            onClick={onLeave}
+            aria-label={`Leave ${building.name}`}
+          >
             Leave
           </button>
         </header>
         <div className="room__body">
-          <Mirror building={building} />
-          <HowItWorks building={building} tide={tide} />
+          <div className="room__intro">
+            <MirrorButton
+              title={building.name}
+              entries={ROOM_MIRROR[building.id] ?? []}
+            />
+            <HowItWorks building={building} tide={tide} />
+          </div>
           {children}
         </div>
       </section>
@@ -62,43 +76,14 @@ export function Room({
   );
 }
 
-/** How many Modern Mirror lines show before "Show more". */
-const MIRROR_SHOWN = 3;
-
-/** The Modern Mirror: what this place and the things in it are in the real world. */
-function Mirror({ building }: { building: Building }) {
-  const [all, setAll] = useState(false);
-  const pairs = ROOM_MIRROR[building.id] ?? [];
-  if (!pairs.length) return null;
-  const shown = all ? pairs : pairs.slice(0, MIRROR_SHOWN);
-  return (
-    <section className="mirror" aria-label="Modern Mirror">
-      <p className="mirror__eyebrow">Modern Mirror · in the real world</p>
-      <dl className="mirror__pairs">
-        {shown.map((p) => (
-          <div key={p.here} className="mirror__pair">
-            <dt>
-              <span className="mirror__here">{p.here}</span>
-              <span className="mirror__is" aria-label="is like">
-                ≈
-              </span>
-              <span className="mirror__there">{p.there}</span>
-            </dt>
-            <dd>{p.text}</dd>
-          </div>
-        ))}
-      </dl>
-      {pairs.length > MIRROR_SHOWN && (
-        <button type="button" className="mirror__more" onClick={() => setAll(!all)}>
-          {all ? "Show less" : `Show ${pairs.length - MIRROR_SHOWN} more`}
-        </button>
-      )}
-    </section>
-  );
-}
-
 /** What a visit costs, and the plain rules of the place (the tour's words) folded away. */
-function HowItWorks({ building, tide }: { building: Building; tide?: ReactNode }) {
+function HowItWorks({
+  building,
+  tide,
+}: {
+  building: Building;
+  tide?: ReactNode;
+}) {
   const info = BUILDING_INFO[building.id];
   if (!info) return null;
   return (
@@ -131,7 +116,15 @@ export function ShockBanner({ run }: { run: Run }) {
   );
 }
 
-export function Section({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
+export function Section({
+  title,
+  children,
+  aside,
+}: {
+  title: string;
+  children: ReactNode;
+  aside?: ReactNode;
+}) {
   return (
     <section className="room__section">
       <header className="room__section-head">
@@ -143,7 +136,11 @@ export function Section({ title, children, aside }: { title: string; children: R
   );
 }
 
-export function Facts({ rows }: { rows: Array<[string, ReactNode] | false | null | undefined> }) {
+export function Facts({
+  rows,
+}: {
+  rows: Array<[string, ReactNode] | false | null | undefined>;
+}) {
   return (
     <dl className="facts">
       {rows.filter(Boolean).map((row) => {
@@ -211,7 +208,9 @@ export function CoinForm({
   const valid = /^\d+$/.test(value) && amount > 0;
   const submit = () => {
     if (!valid) return;
-    void room.act({ kind, amount: toMinor(amount), target }).then(() => setValue(""));
+    void room
+      .act({ kind, amount: toMinor(amount), target })
+      .then(() => setValue(""));
   };
   return (
     <form
@@ -232,7 +231,12 @@ export function CoinForm({
           disabled={room.busy}
         />
         {max !== undefined && max > 0 && (
-          <button type="button" className="button button--quiet" disabled={room.busy} onClick={() => setValue(String(coins(max)))}>
+          <button
+            type="button"
+            className="button button--quiet"
+            disabled={room.busy}
+            onClick={() => setValue(String(coins(max)))}
+          >
             Max
           </button>
         )}
@@ -275,7 +279,11 @@ export function Basket({
   const set = (id: string, n: number) => setQty((q) => ({ ...q, [id]: n }));
   const orders: Order[] = lots
     .filter((l) => (qty[l.id] ?? 0) !== 0)
-    .map((l) => ({ side: qty[l.id] > 0 ? "buy" : "sell", target: l.id, quantity: Math.abs(qty[l.id]) }));
+    .map((l) => ({
+      side: qty[l.id] > 0 ? "buy" : "sell",
+      target: l.id,
+      quantity: Math.abs(qty[l.id]),
+    }));
   const total = lots.reduce((sum, l) => sum + (qty[l.id] ?? 0) * l.price, 0);
   const enabled = can(room.run, kind);
   return (
@@ -304,11 +312,29 @@ export function Basket({
                 <td>{lot.held}</td>
                 <td>
                   <div className="stepper">
-                    <button type="button" disabled={!enabled || room.busy || lot.held + n <= 0} onClick={() => set(lot.id, n - stepOf(lot, n, -1))} aria-label={`Sell ${lot.name}`}>
+                    <button
+                      type="button"
+                      disabled={!enabled || room.busy || lot.held + n <= 0}
+                      onClick={() => set(lot.id, n - stepOf(lot, n, -1))}
+                      aria-label={`Sell ${lot.name}`}
+                    >
                       −
                     </button>
-                    <output className={n > 0 ? "is-buy" : n < 0 ? "is-sell" : ""}>{n > 0 ? `+${n}` : n}</output>
-                    <button type="button" disabled={!enabled || room.busy || (cap !== undefined && lot.held + n >= cap)} onClick={() => set(lot.id, n + stepOf(lot, n, 1))} aria-label={`Buy ${lot.name}`}>
+                    <output
+                      className={n > 0 ? "is-buy" : n < 0 ? "is-sell" : ""}
+                    >
+                      {n > 0 ? `+${n}` : n}
+                    </output>
+                    <button
+                      type="button"
+                      disabled={
+                        !enabled ||
+                        room.busy ||
+                        (cap !== undefined && lot.held + n >= cap)
+                      }
+                      onClick={() => set(lot.id, n + stepOf(lot, n, 1))}
+                      aria-label={`Buy ${lot.name}`}
+                    >
                       +
                     </button>
                   </div>
@@ -320,17 +346,27 @@ export function Basket({
       </table>
       <footer className="basket__foot">
         <span>
-          {total > 0 ? "You pay about " : total < 0 ? "You receive about " : "Nothing chosen"}
+          {total > 0
+            ? "You pay about "
+            : total < 0
+              ? "You receive about "
+              : "Nothing chosen"}
           {total !== 0 && <b className="num">{fmt(Math.abs(total))}</b>}
         </span>
         <span className="basket__actions">
-          <button className="button button--quiet" disabled={room.busy || !orders.length} onClick={() => setQty({})}>
+          <button
+            className="button button--quiet"
+            disabled={room.busy || !orders.length}
+            onClick={() => setQty({})}
+          >
             Clear
           </button>
           <button
             className="button"
             disabled={!enabled || room.busy || !orders.length}
-            onClick={() => void room.act({ kind, orders }).then(() => setQty({}))}
+            onClick={() =>
+              void room.act({ kind, orders }).then(() => setQty({}))
+            }
           >
             Trade
           </button>

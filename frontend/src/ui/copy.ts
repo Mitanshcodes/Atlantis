@@ -100,3 +100,6 @@ export interface TourStep {
   lines?: string[];
 }
 export const TOUR = onboardingJson.steps as TourStep[];
+
+/** The opening's cinematic story: lines typed one by one. {name}, {class}, {coin}, {passage} are filled in. */
+export const STORY = onboardingJson.story as Array<{ text: string; style?: "big" | "gold" }>;

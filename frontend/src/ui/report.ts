@@ -82,8 +82,8 @@ export interface SeasonReport {
   events: string[];
   scrolls: string[];
   mirror: Array<{ topic: string; name: string; text: string }>;
-  /** Chelo's hand-written note, used until (or instead of) the AI's. */
-  chelo: string;
+  /** Chelo's hand-written bullets, used until (or instead of) the AI's. */
+  chelo: string[];
 }
 
 /** Whole coins, with the coin sign. */

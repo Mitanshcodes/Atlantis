@@ -87,7 +87,7 @@ function SeasonPanel({ state, view }: { state: State; view: HudView }) {
         </span>
       </div>
       <p className="hud__hint">
-        Only work and trades spend a tide. Walking, talking and the Bank are free.
+        Work and trades cost a tide. Everything else is free.
       </p>
       {view.hungry_next && <p className="hud__warn">A hungry season ahead: two fewer tides.</p>}
     </section>

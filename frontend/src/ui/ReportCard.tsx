@@ -3,7 +3,8 @@ import { api } from "../api";
 import { loadProfile } from "../game/profile";
 import type { Run } from "../types";
 import { SHOCKS } from "./copy";
-import { Chelo, Typewriter } from "./opening/art";
+import { MirrorButton } from "./Mirror";
+import { Chelo } from "./opening/art";
 import { coin, pct, type SeasonReport } from "./report";
 import { fmt, viewOf } from "./view";
 
@@ -17,12 +18,12 @@ interface Props {
 /**
  * At each season's end, a report card on a scroll: how close you are to Passage, marks for how
  * you used your tides and coin, where the coin went, how your shares did, a note from Chelo, and
- * the Modern Mirror. The engine works out every number; Chelo's note is the only AI-written part.
+ * the Modern Mirror. The engine works out every number; Chelo's bullets are the only AI-written part.
  */
 export function ReportCard({ run, season, onDone }: Props) {
   const [report, setReport] = useState<SeasonReport | null>(null);
   const [missing, setMissing] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
+  const [note, setNote] = useState<string[] | null>(null);
   useEffect(() => {
     let live = true;
     api
@@ -31,7 +32,7 @@ export function ReportCard({ run, season, onDone }: Props) {
       .catch(() => live && setMissing(true));
     api
       .reportNote(run.run_id, season)
-      .then((n) => live && setNote(n.text))
+      .then((n) => live && setNote(n.bullets))
       .catch(() => undefined);
     return () => {
       live = false;
@@ -81,24 +82,19 @@ export function ReportCard({ run, season, onDone }: Props) {
             {report && (
               <>
                 <Pace report={report} />
+                <CheloSays bullets={note ?? report.chelo} />
                 <Marks report={report} />
                 <Tides report={report} />
                 <Coin report={report} />
                 <Shares report={report} />
-                <aside className="report__chelo">
-                  <Chelo scale={4} />
-                  <div>
-                    <p className="report__chelo-name">Chelo says</p>
-                    <p className="report__chelo-text">
-                      <Typewriter
-                        key={note ?? report.chelo}
-                        text={note ?? report.chelo}
-                        speed={16}
-                      />
-                    </p>
-                  </div>
-                </aside>
-                <Mirror report={report} />
+                <MirrorButton
+                  title={`The ${season}, in the real world`}
+                  hint="What this season teaches"
+                  entries={report.mirror.map((m) => ({
+                    here: m.name,
+                    text: m.text,
+                  }))}
+                />
               </>
             )}
 
@@ -152,9 +148,11 @@ function Pace({ report }: { report: SeasonReport }) {
       <div className="report__pace-row">
         <span className="report__pace-big num">{share}%</span>
         <span className="report__pace-words">
-          of next season's Passage. You're worth{" "}
-          <b>{coin(pace.net_worth_end)}</b> of <b>{coin(pace.passage_next)}</b>,{" "}
-          {gained >= 0 ? "up" : "down"} {coin(Math.abs(gained))} this season.
+          <b>of next season's Passage</b> ({coin(pace.passage_next)})
+          <span className="report__pace-sub">
+            Worth {coin(pace.net_worth_end)} · {gained >= 0 ? "up" : "down"}{" "}
+            {coin(Math.abs(gained))} this season
+          </span>
         </span>
       </div>
       <div
@@ -171,9 +169,7 @@ function Pace({ report }: { report: SeasonReport }) {
         </span>
       </div>
       <p className="report__small">
-        Worth means everything you hold, sold at today's prices, minus what you
-        owe. In ready coin (Purse and Vault, less debts) you have{" "}
-        {coin(Math.max(0, pace.ready))}.
+        Worth: everything you own at today's prices, minus debts.
       </p>
     </section>
   );
@@ -357,18 +353,21 @@ function Shares({ report }: { report: SeasonReport }) {
   );
 }
 
-function Mirror({ report }: { report: SeasonReport }) {
+/** Chelo's feedback: a few short bullets, appearing one by one. */
+function CheloSays({ bullets }: { bullets: string[] }) {
   return (
-    <section className="report__mirror" aria-label="Modern Mirror">
-      <p className="mirror__eyebrow">
-        Modern Mirror · what this season looks like in the real world
-      </p>
-      {report.mirror.map((m) => (
-        <article key={m.topic} className="report__mirror-item">
-          <h4>{m.name}</h4>
-          <p>{m.text}</p>
-        </article>
-      ))}
-    </section>
+    <aside className="report__chelo">
+      <Chelo scale={4} />
+      <div>
+        <p className="report__chelo-name">Chelo says</p>
+        <ul className="report__chelo-list" key={bullets.join("|")}>
+          {bullets.map((b, i) => (
+            <li key={b} style={{ animationDelay: `${0.2 + i * 0.45}s` }}>
+              {b}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </aside>
   );
 }

@@ -199,15 +199,15 @@ def _fill(template: str, params: Dict[str, Any]) -> str:
 GRADE_ORDER = "DCBA"
 
 
-def _chelo(marks: List[Dict[str, Any]], lines: Dict[str, Any]) -> str:
-    """Chelo's hand-written note: praise for the best thing, a question about the worst."""
+def _chelo(marks: List[Dict[str, Any]], lines: Dict[str, Any]) -> List[str]:
+    """Chelo's hand-written bullets: praise for the best thing, questions about the two weakest."""
     by_why = {m["why"]: m for m in marks}
     praise = next((line for why, line in lines["praise"].items() if why in by_why), "")
-    worst = min(marks, key=lambda m: GRADE_ORDER.index(m["grade"]))
-    if worst["grade"] not in "CD":
-        return " ".join(filter(None, [praise, lines["steady"]]))
-    ask = lines["ask"].get(worst["why"]) or lines["ask"][worst["subject"]]
-    return " ".join(filter(None, [praise, _fill(ask, worst["params"])]))
+    weak = sorted((m for m in marks if m["grade"] in "CD"), key=lambda m: GRADE_ORDER.index(m["grade"]))
+    if not weak:
+        return [x for x in (praise, lines["steady"]) if x]
+    asks = [_fill(lines["ask"].get(m["why"]) or lines["ask"][m["subject"]], m["params"]) for m in weak[:2]]
+    return ([praise] if praise else []) + asks
 
 
 def season_report(state: State, season: str) -> Dict[str, Any]:

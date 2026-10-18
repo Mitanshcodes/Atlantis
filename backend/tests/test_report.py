@@ -105,7 +105,7 @@ def test_the_bridge_keeps_the_season_and_files_its_report():
     assert r["pace"]["passage_next"] * 100 == st.details["view"]["passage_price"]  # Summer's price, not Spring's
     assert all(m["text"] and "{" not in m["text"] for m in r["marks"])
     assert all(d["season"] > 0 for d in st.details["bridge"]["season_book"]["log"])  # Spring's pages dropped
-    assert r["chelo"] and "{" not in r["chelo"]
+    assert 1 <= len(r["chelo"]) <= 3 and all("{" not in b for b in r["chelo"])
     st = drive(st, "work")
     assert bridge.season_report(st, "Spring") == r  # stays put as the year goes on
 
@@ -120,7 +120,7 @@ def test_report_endpoints(make):  # noqa: F811
     assert "facts" not in body and body["mirror"] and body["marks"]
     assert "scenario" not in json.dumps(body) and "voyage_outcome" not in json.dumps(body)
     note = client.get(f"/api/runs/{rid}/report/note?season=Spring").json()
-    assert note == {"text": body["chelo"], "source": "template"}
+    assert note == {"bullets": body["chelo"], "source": "template"}
 
 
 # --- Chelo's note ---------------------------------------------------------------------------------
@@ -128,18 +128,28 @@ def test_report_endpoints(make):  # noqa: F811
 FACTS = {"wages": 300, "lost": 200, "kelp": 12}
 
 
-def test_the_note_check_keeps_honest_plain_text():
-    good = ("You worked hard and 300◈ in wages is the most you've held. Then 200◈ went to Deepcoral and sank, "
-            "so a good part of that work now sits at the bottom of the harbor. How much of your next pay is spoken for?")
-    assert ai.check(good, FACTS) == good
+GOOD = ("- Five shifts brought in 300◈, the most you've held all year.\n"
+        "- Then 200◈ went into Deepcoral, and that voyage sank.\n"
+        "- How much of next season's pay is already spoken for?")
+
+
+def test_the_note_check_keeps_honest_short_bullets():
+    assert ai.check(GOOD, FACTS) == [
+        "Five shifts brought in 300◈, the most you've held all year.",
+        "Then 200◈ went into Deepcoral, and that voyage sank.",
+        "How much of next season's pay is already spoken for?",
+    ]
 
 
 @pytest.mark.parametrize("bad", [
-    "Your journey through the season was a testament to grit, and 300◈ in wages shows real effort from you this time.",
-    "You earned 300◈ — and lost 200◈ to Deepcoral, which sank with the tide and took most of your work along with it.",
-    "Great season! You earned 300◈ in wages and only lost 200◈ to Deepcoral, which is a fine result for anyone here.",
-    "You earned 450◈ in wages this season and then lost 200◈ to Deepcoral, which sank and took your work down with it.",
-    "Short.",
+    GOOD.replace("Five shifts", "Your journey of five shifts"),
+    GOOD.replace(", and that", " — and that"),
+    GOOD.replace("sank.", "sank!"),
+    GOOD.replace("300◈", "450◈"),  # a number the engine never gave
+    "One long paragraph with 300◈ and 200◈ in it but no bullets at all to speak of here.",
+    GOOD + "\n- A fourth bullet that should not be here at all.",
+    GOOD.replace("Then 200◈ went into Deepcoral, and that voyage sank.",
+                 "Then 200◈ went into Deepcoral and that voyage sank and took most of what you earned with it down."),
 ])
 def test_the_note_check_rejects_slop_and_invented_numbers(bad):
     assert ai.check(bad, FACTS) is None
@@ -155,11 +165,13 @@ def test_note_uses_the_model_when_it_follows_the_rules(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     r = sample_report()
     worth = r["facts"]["pace"]["net_worth_end"]
-    text = (f"You let every tide slip by, and the season ended with you worth {worth}◈. The circle's coin is a loan, "
-            "not a gift, and it comes due whether you work or not. What did the quiet cost you?")
+    text = (f"- The circle's pot kept you worth {worth}◈ while every tide slipped by.\n"
+            "- Not one shift worked, so no wages came in.\n- What did the quiet cost you?")
     replies = iter([{"choices": [{"message": {"content": text}}]}])
     client = httpx.Client(transport=httpx.MockTransport(lambda req: httpx.Response(200, json=next(replies))))
-    assert ai.note(r, client=client) == {"text": text, "source": "openai"}
+    assert ai.note(r, client=client) == {"bullets": [
+        f"The circle's pot kept you worth {worth}◈ while every tide slipped by.",
+        "Not one shift worked, so no wages came in.", "What did the quiet cost you?"], "source": "openai"}
 
 
 def test_note_falls_back_when_the_model_misbehaves_or_fails(monkeypatch):
@@ -169,4 +181,4 @@ def test_note_falls_back_when_the_model_misbehaves_or_fails(monkeypatch):
     client = httpx.Client(transport=httpx.MockTransport(lambda req: httpx.Response(200, json=slop)))
     assert ai.note(r, client=client)["source"] == "template"
     broke = httpx.Client(transport=httpx.MockTransport(lambda req: httpx.Response(429, json={})))
-    assert ai.note(r, client=broke) == {"text": r["chelo"], "source": "template"}
+    assert ai.note(r, client=broke) == {"bullets": r["chelo"], "source": "template"}
