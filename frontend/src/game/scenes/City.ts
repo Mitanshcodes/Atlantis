@@ -1,9 +1,19 @@
 import Phaser from "phaser";
 import { GENERATED, PLAYER, frameRect, type Facing, type PlacedSprite } from "../assets";
 import { BUILDINGS, BUILDINGS_BY_ID, type Building, type BuildingId } from "../buildings";
-import { GENERATED_DECOR, LAMP_LIGHTS, PLAYER_START, WORLD_H, WORLD_W, buildDecor, route } from "../cityMap";
+import {
+  BUBBLE_VENTS,
+  GENERATED_DECOR,
+  LAMP_LIGHTS,
+  PLAYER_START,
+  WORLD_H,
+  WORLD_W,
+  buildDecor,
+  nearestWalkable,
+} from "../cityMap";
 import { CURSORS } from "../cursors";
 import { EventBus } from "../EventBus";
+import { addCritters } from "../fx/critters";
 import {
   DEPTH,
   addCaustics,
@@ -19,9 +29,12 @@ import {
 import { CX, CY, GATE, type Point } from "../geometry";
 import { seededRandom } from "../random";
 
-const WALK_SPEED = 140; // px per second
 const DRAG_THRESHOLD = 6; // px of pointer travel before a press becomes a pan
-const CAMERA_LERP = 0.06; // how quickly the camera catches up with the walker
+const CAMERA_LERP = 0.08; // how quickly the camera catches up with the player
+/** The bubble hop, in ms: squash, vanish, the arrival bubble swelling, the spring out of it. */
+const HOP = { squash: 60, vanish: 130, swell: 110, spring: 240 } as const;
+/** Where the middle of the player is, above their feet: bubbles burst from here. */
+const PLAYER_MID = 13;
 const ZOOMS = [1, 2, 3, 4] as const; // whole steps keep pixel art crisp
 const PLATE_FONT = '"Silkscreen", monospace';
 const SHADOW = { x: 4, y: 3, color: 0x0a1a22, alpha: 0.28 } as const;
@@ -31,7 +44,9 @@ export class City extends Phaser.Scene {
   private player!: Phaser.GameObjects.Container;
   private playerSprite!: Phaser.GameObjects.Sprite;
   private facing: Facing = "down";
-  private walk?: Phaser.Tweens.TweenChain;
+  private hopping = false;
+  private poof!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private rise!: Phaser.GameObjects.Particles.ParticleEmitter;
   private inside: BuildingId | null = null;
   private hovered: BuildingId | null = null;
   private lastAnchor = "";
@@ -65,8 +80,9 @@ export class City extends Phaser.Scene {
       { x: reef.x, y: reef.y - 90 },
       { x: GATE.x, y: GATE.y }, // the Sea Gate
       { x: 170, y: WORLD_H - 30 }, // the wreck below the wall
+      ...BUBBLE_VENTS,
     ]);
-    this.updaters.push(addFish(this));
+    this.updaters.push(addFish(this), addCritters(this));
     for (const [id, color, size, strength] of [
       ["council", 0xffe2a0, 200, 0.12],
       ["bank", 0xbaf6ff, 200, 0.12],
@@ -213,47 +229,105 @@ export class City extends Phaser.Scene {
     this.playerSprite = this.add.sprite(0, 0, PLAYER.idle.key).setOrigin(0.5, PLAYER.footY / PLAYER.frame);
     this.playerSprite.play("idle-down");
     this.player = this.add.container(PLAYER_START.x, PLAYER_START.y, [this.playerSprite]);
+
+    // A ring of little bubbles bursting outward, and a few big ones floating up after it.
+    this.poof = this.add
+      .particles(0, 0, "bubbles", {
+        frame: ["tiny", "small", "medium", "large", "ring"],
+        emitting: false,
+        lifespan: { min: 350, max: 650 },
+        speed: { min: 45, max: 110 },
+        angle: { min: 0, max: 360 },
+        gravityY: -150,
+        scale: { start: 1, end: 0.4 },
+        alpha: { start: 1, end: 0 },
+      })
+      .setDepth(DEPTH.particles);
+    this.rise = this.add
+      .particles(0, 0, "bubbles", {
+        frame: ["bubble", "ring", "large"],
+        emitting: false,
+        lifespan: { min: 700, max: 1100 },
+        speedY: { min: -70, max: -35 },
+        speedX: { min: -18, max: 18 },
+        scale: { start: 0.5, end: 1 },
+        alpha: { start: 0.9, end: 0 },
+      })
+      .setDepth(DEPTH.particles);
   }
 
-  /** Face the way the next leg goes, and walk (or stand) that way. */
-  private face(dx: number, dy: number, walking: boolean): void {
+  private bubbleBurst(x: number, y: number): void {
+    this.poof.explode(14, x, y - PLAYER_MID);
+    this.rise.explode(4, x, y - PLAYER_MID);
+  }
+
+  /** Turn toward where we're going. */
+  private face(dx: number, dy: number): void {
     if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
       this.facing = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : dy < 0 ? "up" : "down";
     }
-    this.playerSprite.play(`${walking ? "walk" : "idle"}-${this.facing}`, true);
+    this.playerSprite.play(`idle-${this.facing}`, true);
   }
 
   private goTo(building: Building): void {
     if (this.inside) return;
-    this.walkTo(building.door, () => this.enterBuilding(building.id));
+    this.hopTo(building.door, () => this.enterBuilding(building.id));
   }
 
-  private walkTo(dest: Point, onArrive?: () => void): void {
-    this.walk?.stop();
-    // Keep the walker in view; dragging the map lets go (see setupInput).
+  /**
+   * Vanish in a burst of bubbles and pop up at the destination: squash, stretch up and fade out,
+   * then a big bubble swells where we're going with the player tiny inside, and pops.
+   */
+  private hopTo(target: Point, onArrive?: () => void): void {
+    if (this.hopping) return;
+    this.hopping = true;
+    const dest = nearestWalkable(target);
+    // Keep the player in view; dragging the map lets go (see setupInput).
     this.cameras.main.startFollow(this.player, true, CAMERA_LERP, CAMERA_LERP);
-    let from: Point = { x: this.player.x, y: this.player.y };
-    const legs = route(from, dest).map((point) => {
-      const leg = {
-        x: point.x,
-        y: point.y,
-        duration: (Phaser.Math.Distance.BetweenPoints(from, point) / WALK_SPEED) * 1000,
-        ease: "Linear",
-        onStart: () => this.face(point.x - this.player.x, point.y - this.player.y, true),
-      };
-      from = point;
-      return leg;
+    this.face(dest.x - this.player.x, dest.y - this.player.y);
+    this.bubbleBurst(this.player.x, this.player.y);
+    this.tweens.chain({
+      targets: this.playerSprite,
+      tweens: [
+        { scaleX: 1.3, scaleY: 0.7, duration: HOP.squash, ease: "Quad.easeOut" },
+        { scaleX: 0.3, scaleY: 1.5, y: -8, alpha: 0, duration: HOP.vanish, ease: "Quad.easeIn" },
+      ],
+      onComplete: () => this.popUp(dest, onArrive),
     });
-    if (!legs.length) {
-      this.face(0, 0, false);
-      onArrive?.();
-      return;
-    }
-    this.walk = this.tweens.chain({
-      targets: this.player,
-      tweens: legs,
+  }
+
+  private popUp(at: Point, onArrive?: () => void): void {
+    this.player.setPosition(at.x, at.y).setAlpha(1);
+    const bubble = this.add
+      .image(at.x, at.y - PLAYER_MID, "bubbles", "huge")
+      .setScale(0)
+      .setAlpha(0.9)
+      .setDepth(DEPTH.particles);
+    this.tweens.chain({
+      targets: bubble,
+      tweens: [
+        { scale: 1, duration: HOP.swell, ease: "Back.easeOut" },
+        { scale: 1.35, alpha: 0, duration: 90, ease: "Quad.easeOut" },
+      ],
+      onComplete: () => bubble.destroy(),
+    });
+    this.playerSprite.setScale(0).setAlpha(1).setY(-6);
+    this.tweens.chain({
+      targets: this.playerSprite,
+      tweens: [
+        { scale: 0.55, duration: HOP.swell, ease: "Back.easeOut" },
+        {
+          scaleX: 1.25,
+          scaleY: 0.8,
+          y: 0,
+          duration: 70,
+          ease: "Quad.easeIn",
+          onStart: () => this.bubbleBurst(at.x, at.y),
+        },
+        { scaleX: 1, scaleY: 1, duration: HOP.spring - 70, ease: "Back.easeOut" },
+      ],
       onComplete: () => {
-        this.face(0, 0, false);
+        this.hopping = false;
         onArrive?.();
       },
     });
@@ -266,12 +340,12 @@ export class City extends Phaser.Scene {
     EventBus.emit("building-entered", id);
   }
 
+  /** Step back out of the door in a pop of bubbles. */
   private leaveBuilding(id: BuildingId): void {
     if (this.inside !== id) return;
     this.inside = null;
-    const door = BUILDINGS_BY_ID[id].door;
-    this.player.setPosition(door.x, door.y);
-    this.tweens.add({ targets: this.player, alpha: 1, duration: 250 });
+    this.hopping = true;
+    this.popUp(BUILDINGS_BY_ID[id].door);
   }
 
   // --- Camera and input -----------------------------------------------------------------------
@@ -341,7 +415,7 @@ export class City extends Phaser.Scene {
         // Let building handlers see the drag flag first, then reset it.
         this.time.delayedCall(0, () => (this.dragging = false));
         if (wasDrag || over.length || this.inside) return;
-        this.walkTo({ x: p.worldX, y: p.worldY });
+        this.hopTo({ x: p.worldX, y: p.worldY });
       },
     );
   }

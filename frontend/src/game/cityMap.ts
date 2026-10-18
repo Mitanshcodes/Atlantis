@@ -3,8 +3,8 @@
  *
  * Decor is either placed by hand (the Herald's rostrum, lamps along the stair, the kelp farm, the
  * wreck in the sea) or placed by a seeded search that only accepts spots on open ground, so houses
- * and kelp never land on a road, a canal or a building. Walking follows the ring roads, the east
- * and west bridges, and the grand stair.
+ * and kelp never land on a road, a canal or a building. Also: where the player may pop up after a
+ * click, and where the little creatures live.
  */
 
 import { GENERATED, frameRect, type PlacedSprite, type SpriteRef } from "./assets";
@@ -17,7 +17,6 @@ import {
   CY,
   GATE,
   ISLAND_R,
-  OUTER_EDGE,
   RING_ROADS,
   SEA_Y,
   STAIR_HALF,
@@ -25,7 +24,6 @@ import {
   WORLD_W,
   angleOf,
   groundAt,
-  levelOf,
   northOfRoad,
   polar,
   radiusOf,
@@ -46,8 +44,6 @@ export interface GeneratedDecor {
   x: number;
   y: number;
 }
-
-const AVENUES = [0, 90, 180] as const;
 
 // --- Hand-placed decor ----------------------------------------------------------------------------
 
@@ -159,6 +155,7 @@ function onGround(box: Box, allowed: ReadonlySet<Ground>, step = 6): boolean {
 
 const STONE = new Set<Ground>(["stone"]);
 const SEA = new Set<Ground>(["sea"]);
+const SANDSTONE = new Set<Ground>(["sandstone"]);
 
 function initialBlockers(): Box[] {
   return [
@@ -167,7 +164,10 @@ function initialBlockers(): Box[] {
       { x1: b.door.x - 20, y1: b.door.y - 24, x2: b.door.x + 20, y2: b.door.y + 12 },
     ]),
     ...FIXED_DECOR.map((d) => spriteBox(d, d.x, d.y, 4)),
-    ...GENERATED_DECOR.map((d) => ({ x1: d.x - 70, y1: d.y - 30, x2: d.x + 70, y2: d.y + 4 })),
+    ...GENERATED_DECOR.map((d) => {
+      const half = d.key === GENERATED.lamp ? 6 : 66;
+      return { x1: d.x - half, y1: d.y - 30, x2: d.x + half, y2: d.y + 4 };
+    }),
   ];
 }
 
@@ -211,48 +211,115 @@ function placeHouses(blockers: Box[], seed = 23, attempts = 900, max = 18): Deco
   return placed;
 }
 
-const VEGETATION = (
-  [
-    ["kelpLeafy", 4, true],
-    ["kelpLeafyTall", 3, true],
-    ["kelpRibbon", 3, true],
-    ["kelpRibbonTall", 3, true],
-    ["kelpCurly", 2, true],
-    ["kelpStrand", 3, true],
-    ["seagrass", 3, true],
-    ["coralTubes", 2, false],
-    ["coralTubesAlt", 2, false],
-    ["coralRed", 2, false],
-    ["coralTable", 1, false],
-    ["podsPurple", 2, false],
-    ["podsGreen", 2, false],
-    ["anemone", 3, true],
-  ] as const
-).map(([frame, weight, sway]) => ({ ref: { sheet: "vegetation", frame } as SpriteRef, weight, sway }));
+type Plant = { ref: SpriteRef; weight: number; sway: boolean };
 
-/** Kelp and coral in small clumps on open ground, and thicker gardens in the sea. */
-function scatterVegetation(blockers: Box[], allowed: ReadonlySet<Ground>, area: Box, clusters: number, seed: number): Decor[] {
+const plants = (sheet: "vegetation" | "rocks", list: ReadonlyArray<readonly [string, number, boolean]>): Plant[] =>
+  list.map(([frame, weight, sway]) => ({ ref: { sheet, frame } as SpriteRef, weight, sway }));
+
+/** Tall kelp, coral and anemones: the gardens on the outer stone and the seabed. */
+const GARDEN = plants("vegetation", [
+  ["kelpLeafy", 4, true],
+  ["kelpLeafyTall", 4, true],
+  ["kelpRibbon", 3, true],
+  ["kelpRibbonTall", 3, true],
+  ["kelpCurly", 3, true],
+  ["kelpCurlySmall", 3, true],
+  ["kelpStrand", 3, true],
+  ["seagrass", 3, true],
+  ["coralTubes", 2, false],
+  ["coralTubesAlt", 2, false],
+  ["tubeBunch", 3, false],
+  ["tubePile", 2, false],
+  ["tubePileAlt", 2, false],
+  ["coralRed", 1, false],
+  ["coralBranch", 2, true],
+  ["coralBranchThin", 2, true],
+  ["coralBranchSmall", 2, true],
+  ["coralTable", 1, false],
+  ["podsPurpleCluster", 2, false],
+  ["podsOrangeCluster", 2, false],
+  ["anemone", 3, true],
+  ["anemoneFringe", 1, true],
+]);
+
+/** Low things that don't hide the paving: small tube corals, sea pods and anemones. */
+const BORDER = plants("vegetation", [
+  ["tubeSmall", 3, false],
+  ["tubeTrio", 3, false],
+  ["podPurple", 3, false],
+  ["podPurpleMid", 2, false],
+  ["podOrange", 3, false],
+  ["podOrangeMid", 2, false],
+  ["anemone", 2, true],
+  ["kelpCurlySmall", 2, true],
+  ["coralBranchSmall", 1, true],
+]);
+
+const ROCKS = plants("rocks", [
+  ["rockMossyBig", 1, false],
+  ["rockMossyTall", 2, false],
+  ["rockMossyLow", 2, false],
+  ["rockMossyLowAlt", 2, false],
+]);
+
+/** Plants in small seeded clumps on the allowed ground, never on a path or a building. */
+function scatterVegetation(
+  blockers: Box[],
+  allowed: ReadonlySet<Ground>,
+  area: Box,
+  clusters: number,
+  seed: number,
+  kinds: Plant[] = GARDEN,
+  spread = 50,
+): Decor[] {
   const rand = seededRandom(seed);
-  const total = VEGETATION.reduce((sum, v) => sum + v.weight, 0);
+  const total = kinds.reduce((sum, v) => sum + v.weight, 0);
   const pick = () => {
     let roll = rand() * total;
-    for (const v of VEGETATION) if ((roll -= v.weight) < 0) return v;
-    return VEGETATION[0];
+    for (const v of kinds) if ((roll -= v.weight) < 0) return v;
+    return kinds[0];
   };
   const placed: Decor[] = [];
   for (let c = 0; c < clusters; c++) {
-    const cx = area.x1 + rand() * (area.x2 - area.x1);
-    const cy = area.y1 + rand() * (area.y2 - area.y1);
+    // Look for a clump's centre on the allowed ground, so no clump is wasted on the wrong ring.
+    let cx = 0;
+    let cy = 0;
+    for (let tries = 0; tries < 20; tries++) {
+      cx = area.x1 + rand() * (area.x2 - area.x1);
+      cy = area.y1 + rand() * (area.y2 - area.y1);
+      if (allowed.has(groundAt(cx, cy))) break;
+    }
     const count = 2 + Math.floor(rand() * 4);
     for (let i = 0; i < count; i++) {
       const v = pick();
-      const x = Math.round(cx + (rand() - 0.5) * 50);
-      const y = Math.round(cy + (rand() - 0.5) * 20);
+      const x = Math.round(cx + (rand() - 0.5) * spread);
+      const y = Math.round(cy + (rand() - 0.5) * spread * 0.4);
+      // Like houses, a plant only needs its footprint on the ground; the rest may stand over
+      // anything but a path.
       const box = spriteBox(v.ref, x, y);
-      if (!onGround(box, allowed, 4) || blockers.some((b) => overlaps(b, box))) continue;
+      const foot = { ...box, y1: box.y2 - Math.max(4, (box.y2 - box.y1) * FOOTPRINT) };
+      if (!onGround(foot, allowed, 3) || !onGround(box, NOT_PATH, 4)) continue;
+      if (blockers.some((b) => overlaps(b, box))) continue;
       placed.push({ ...v.ref, x, y, sway: v.sway });
       blockers.push(spriteBox(v.ref, x, y, -3)); // neighbours may overlap a little
     }
+  }
+  return placed;
+}
+
+const FRINGE = GARDEN.filter((p) => p.ref.frame.startsWith("kelp") || p.ref.frame === "seagrass");
+
+/** A swaying fringe of kelp along the top of the city wall, with gaps, leaving the stair clear. */
+function kelpFringe(blockers: Box[], seed = 16): Decor[] {
+  const rand = seededRandom(seed);
+  const placed: Decor[] = [];
+  const y = SEA_Y - CLIFF_H - 1;
+  for (let x = 6; x < WORLD_W - 6; x += 7 + Math.floor(rand() * 6)) {
+    if (Math.abs(x - CX) < STAIR_HALF + 24 || rand() < 0.25) continue;
+    const { ref } = FRINGE[Math.floor(rand() * FRINGE.length)];
+    const box = spriteBox(ref, x, y);
+    if (blockers.some((b) => overlaps(b, { ...box, y1: box.y2 - 6 }))) continue;
+    placed.push({ ...ref, x, y, sway: true });
   }
   return placed;
 }
@@ -262,105 +329,65 @@ export function buildDecor(): Decor[] {
   const blockers = initialBlockers();
   const houses = placeHouses(blockers);
   const world = { x1: 0, y1: 0, x2: WORLD_W, y2: WORLD_H };
+  const seabed = { ...world, y1: SEA_Y + 16 };
   return [
     ...FIXED_DECOR,
     ...houses,
-    ...scatterVegetation(blockers, STONE, world, 140, 11),
-    ...scatterVegetation(blockers, SEA, { ...world, y1: SEA_Y + 20 }, 40, 12),
+    ...scatterVegetation(blockers, STONE, world, 12, 13, ROCKS, 10),
+    ...scatterVegetation(blockers, SEA, seabed, 8, 14, ROCKS, 10),
+    ...kelpFringe(blockers),
+    ...scatterVegetation(blockers, STONE, world, 240, 11),
+    ...scatterVegetation(blockers, SEA, seabed, 90, 12),
+    ...scatterVegetation(blockers, SANDSTONE, world, 34, 15, BORDER, 24),
   ];
 }
 
-// --- Walking routes -------------------------------------------------------------------------------
-
-/** The row in front of the island temples that every island trip passes through. */
-const HUB_Y = ISLAND_DOOR_Y;
-const ROAD_FOR_LEVEL = [0, RING_ROADS[0], RING_ROADS[1]] as const;
-/** Where walkers turn off the hub row toward the east and west bridges. */
-const ISLAND_SIDE = ISLAND_R - 50;
-
-const signedDelta = (from: number, to: number) => ((((to - from) % 360) + 540) % 360) - 180;
+// --- Where the player can appear ------------------------------------------------------------------
 
 /**
- * Degrees to walk around a ring from one angle to another. The shortest way, except that the
- * outer ring road never goes over the top: its north side runs off the edge of the map.
+ * The spot nearest a click where the player can stand: anywhere on the city floor or the seabed,
+ * but never in a canal (they pop out on the nearer bank) or off the edge of the world.
  */
-function ringDelta(r: number, from: number, to: number): number {
-  const d = signedDelta(from, to);
-  if (r < RING_ROADS[1] || d === 0) return d;
-  const toTop = d > 0 ? (((-90 - from) % 360) + 360) % 360 : (((from + 90) % 360) + 360) % 360;
-  return toTop > 0 && toTop < Math.abs(d) ? d - Math.sign(d) * 360 : d;
-}
-
-function arc(r: number, from: number, to: number): Point[] {
-  const d = ringDelta(r, from, to);
-  const steps = Math.max(1, Math.ceil(Math.abs(d) / 5));
-  return Array.from({ length: steps }, (_, i) => polar(r, from + (d * (i + 1)) / steps));
-}
-
-const arcLength = (r: number, from: number, to: number) => (Math.abs(ringDelta(r, from, to)) * Math.PI * r) / 180;
-
-/** The island path between the hub row and the edge where an avenue leaves. */
-function islandExit(deg: number): Point[] {
-  const edge = polar(ISLAND_R, deg);
-  if (deg === 90) return [{ x: CX, y: HUB_Y }, edge];
-  const side = Math.sign(edge.x - CX);
-  return [{ x: CX + side * ISLAND_SIDE, y: HUB_Y }, { x: CX + side * (ISLAND_R - 16), y: CY }, edge];
-}
-
-/** Move a point onto walkable ground: off the water, off the sea, inside the city's edge. */
-function onLand(pt: Point): Point {
-  const x = Math.min(WORLD_W - 8, Math.max(8, pt.x));
-  let y = Math.min(WORLD_H - 4, Math.max(16, pt.y));
-  // The grand stair is walkable all the way down to the Sea Gate; elsewhere the cliff stops you.
-  if (Math.abs(x - CX) < STAIR_HALF - 4 && y > CY) return { x, y: Math.min(y, GATE.y - GATE.halfH - 2) };
-  if (y >= SEA_Y - CLIFF_H) y = SEA_Y - CLIFF_H - 4;
-  const r = radiusOf({ x, y });
-  if (r >= OUTER_EDGE) return polar(OUTER_EDGE - 12, angleOf({ x, y }));
+export function nearestWalkable(pt: Point): Point {
+  const x = Math.round(Math.min(WORLD_W - 10, Math.max(10, pt.x)));
+  const y = Math.round(Math.min(WORLD_H - 6, Math.max(30, pt.y)));
   const ground = groundAt(x, y);
   if (ground !== "water" && ground !== "rim") return { x, y };
+  const r = radiusOf({ x, y });
   const [inner, outer] = CANALS.find(([i, o]) => r >= i && r < o)!;
-  return polar(r < (inner + outer) / 2 ? inner - 8 : outer + 8, angleOf({ x, y }));
+  const bank = polar(r < (inner + outer) / 2 ? inner - 8 : outer + 8, angleOf({ x, y }));
+  return { x: Math.round(bank.x), y: Math.round(bank.y) };
 }
 
-/**
- * Waypoints from ``from`` to ``to``: onto the nearest ring road, around it to the best avenue,
- * along the avenue to the destination's ring, around that ring, and off to the destination.
- * Trips on the island cut across the row in front of the temples.
- */
-export function route(from: Point, rawTo: Point): Point[] {
-  const to = onLand(rawTo);
-  const lf = levelOf(radiusOf(from));
-  const lt = levelOf(radiusOf(to));
-  const af = angleOf(from);
-  const at = angleOf(to);
-  const points: Point[] = [];
+// --- Homes for the creatures ----------------------------------------------------------------------
 
-  if (lf === lt && Math.hypot(to.x - from.x, to.y - from.y) < 40) {
-    points.push(to);
-  } else if (lf === lt && lf === 0) {
-    points.push({ x: from.x, y: HUB_Y }, { x: to.x, y: HUB_Y }, to);
-  } else if (lf === lt) {
-    const r = ROAD_FOR_LEVEL[lf];
-    points.push(polar(r, af), ...arc(r, af, at), to);
-  } else {
-    const rf = ROAD_FOR_LEVEL[lf];
-    const rt = ROAD_FOR_LEVEL[lt];
-    const cost = (a: number) => arcLength(rf, af, a) + arcLength(rt, a, at);
-    const avenue = AVENUES.reduce((best, a) => (cost(a) < cost(best) ? a : best));
-    if (lf === 0) points.push({ x: from.x, y: HUB_Y }, ...islandExit(avenue));
-    else points.push(polar(rf, af), ...arc(rf, af, avenue));
-    if (lt === 0) points.push(...islandExit(avenue).reverse(), { x: to.x, y: HUB_Y }, to);
-    else points.push(polar(rt, avenue), ...arc(rt, avenue, at), to);
-  }
+const BUILDING_BOXES = BUILDINGS.flatMap((b) => b.sprites.map((s) => spriteBox(s, s.x, s.y, 4)));
 
-  // Drop points that barely move.
-  const out: Point[] = [];
-  let last = from;
-  for (const pt of points) {
-    if (Math.abs(pt.x - last.x) + Math.abs(pt.y - last.y) >= 2) {
-      out.push(pt);
-      last = pt;
-    }
+/** Seeded points on the given grounds, clear of the buildings, at least ``gap`` apart. */
+function groundSpots(allowed: ReadonlySet<Ground>, count: number, seed: number, gap = 24): Point[] {
+  const rand = seededRandom(seed);
+  const spots: Point[] = [];
+  for (let i = 0; i < count * 40 && spots.length < count; i++) {
+    const pt = { x: Math.round(16 + rand() * (WORLD_W - 32)), y: Math.round(24 + rand() * (WORLD_H - 32)) };
+    const box = { x1: pt.x - 6, y1: pt.y - 6, x2: pt.x + 6, y2: pt.y + 2 };
+    if (!onGround(box, allowed, 4) || BUILDING_BOXES.some((b) => overlaps(b, box))) continue;
+    if (spots.some((s) => Math.hypot(s.x - pt.x, s.y - pt.y) < gap)) continue;
+    spots.push(pt);
   }
-  return out;
+  return spots;
 }
+
+const SEABED = new Set<Ground>(["sea"]);
+const SHORE = new Set<Ground>(["stone", "sea"]);
+
+/** Where each kind of ground-dwelling creature lives. Swimmers roam the whole map instead. */
+export const CRITTER_HOMES = {
+  crabs: groundSpots(SHORE, 9, 41, 40).filter((p) => p.y > CY),
+  clams: groundSpots(SEABED, 5, 42, 60).concat(groundSpots(STONE, 3, 43, 80)),
+  starfish: groundSpots(SEABED, 8, 44, 30).concat(groundSpots(STONE, 6, 45, 60)),
+  seahorses: groundSpots(SEABED, 4, 46, 80).map((p) => ({ x: p.x, y: p.y - 14 })),
+  octopuses: [...groundSpots(SEABED, 1, 47), { x: 150, y: 214 }],
+} as const;
+
+/** Spots on the seabed and the outer stone where streams of bubbles rise from the coral. */
+export const BUBBLE_VENTS: Point[] = groundSpots(SEABED, 5, 48, 120).concat(groundSpots(STONE, 4, 49, 160));

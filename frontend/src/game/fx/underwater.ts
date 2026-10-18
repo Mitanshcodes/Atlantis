@@ -190,10 +190,10 @@ export function addParticles(scene: Phaser.Scene, vents: Array<{ x: number; y: n
     .setDepth(DEPTH.particles);
 }
 
-/** Small schools of fish crossing the city, each fish weaving a little on its own. */
+/** Schools of fish crossing the city, each fish weaving a little and wagging its tail. */
 export function addFish(scene: Phaser.Scene, seed = 5): (time: number, delta: number) => void {
   const rand = seededRandom(seed);
-  const schools = Array.from({ length: Math.round(5 * AREA) }, () => {
+  const schools = Array.from({ length: Math.round(10 * AREA) }, () => {
     const dir = rand() < 0.5 ? 1 : -1;
     const texture = GENERATED.fish[Math.floor(rand() * GENERATED.fish.length)];
     const fish = Array.from({ length: 3 + Math.floor(rand() * 5) }, () => ({
@@ -224,10 +224,12 @@ export function addFish(scene: Phaser.Scene, seed = 5): (time: number, delta: nu
       }
       const sway = Math.sin(t * 0.7 + school.phase) * 8;
       for (const f of school.fish) {
-        f.sprite.setPosition(
-          Math.round(school.x + f.dx + Math.sin(t * 2 + f.phase) * 1.5),
-          Math.round(school.y + f.dy + sway + Math.sin(t * 3 + f.phase) * 1),
-        );
+        f.sprite
+          .setPosition(
+            Math.round(school.x + f.dx + Math.sin(t * 2 + f.phase) * 1.5),
+            Math.round(school.y + f.dy + sway + Math.sin(t * 3 + f.phase) * 1),
+          )
+          .setAngle(Math.sin(t * 9 + f.phase) * 7);
       }
     }
   };

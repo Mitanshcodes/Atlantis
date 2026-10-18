@@ -11,11 +11,12 @@
   Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Used for the houses,
   market stalls, pots and amphorae.
 - **Underwater Tileset Pack** by **Mucho Pixels**: https://muchopixels.itch.io/underwater-tileset-pack
-  Used under the GameDev Market Pro Licence. Used for kelp, coral, sunken ruins, shipwrecks, treasure
-  and bubbles.
+  Used under the GameDev Market Pro Licence. Used for kelp, coral, anemones, sea pods, mossy rocks,
+  sunken ruins, shipwrecks, treasure, and the air bubbles of the player's bubble hop.
 
-The city floor (marble, sandstone, mossy stone, canals, stair, sea), lamps, kelp beds, fish,
-light shafts and caustics are drawn in code.
+The city floor (marble, sandstone, mossy stone, canals, stair, sea), lamps, kelp beds, light
+shafts and caustics are drawn in code, as are the sea creatures (fish, jellyfish, crabs, clams,
+starfish, seahorses, octopuses, pufferfish and the turtle), since none of the packs include any.
 
 ## Fonts
 

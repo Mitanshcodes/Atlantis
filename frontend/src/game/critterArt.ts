@@ -1,0 +1,336 @@
+/**
+ * Pixel art for the sea creatures, which none of the asset packs include. Each creature is one
+ * or more frames of the same size: one string per row, one palette letter per pixel, "." for
+ * transparent. Boot draws each into a small sheet; ``rate`` (frames a second) makes a looping
+ * animation of the same key, and creatures without one have their frames set by hand.
+ */
+
+import { CRITTERS } from "./assets";
+
+export interface CritterArt {
+  palette: Record<string, string>;
+  frames: string[][];
+  rate?: number;
+}
+
+export const CRITTER_ART: Record<keyof typeof CRITTERS, CritterArt> = {
+  /** A pink jellyfish: the bell squeezes and opens as it swims. */
+  jelly: {
+    palette: { k: "#8a3478", P: "#ff9fd6", h: "#fff0fa", p: "#e870b8", t: "#ffc4ea" },
+    frames: [
+      [
+        "...kkkkk...",
+        "..kPPPPPk..",
+        ".kPhhPPPPk.",
+        ".kPhPPPPPk.",
+        "kPPPPPPPPPk",
+        "kpPpPpPpPpk",
+        ".kkkkkkkkk.",
+        "..t.t.t.t..",
+        "..t.t..t.t.",
+        ".t..t.t..t.",
+        "..t..t.t.t.",
+        "..t.t..t...",
+        ".t..t...t..",
+        "...........",
+      ],
+      [
+        "....kkk....",
+        "...kPPPk...",
+        "..kPhPPPk..",
+        "..kPhPPPk..",
+        "..kPPPPPk..",
+        "..kpPpPpk..",
+        "...kkkkk...",
+        "...t.t.t...",
+        "...t.t.t...",
+        "..t..t..t..",
+        "...t.t.t...",
+        "..t..t..t..",
+        "...t...t...",
+        "..t.....t..",
+      ],
+    ],
+    rate: 4,
+  },
+  /** A blue jellyfish. */
+  jellyBlue: {
+    palette: { k: "#234a8a", P: "#8fd8ff", h: "#f0fcff", p: "#5fb0f0", t: "#bfeaff" },
+    frames: [
+      [
+        "...kkkkk...",
+        "..kPPPPPk..",
+        ".kPhhPPPPk.",
+        ".kPhPPPPPk.",
+        "kPPPPPPPPPk",
+        "kpPpPpPpPpk",
+        ".kkkkkkkkk.",
+        "..t.t.t.t..",
+        "..t.t..t.t.",
+        ".t..t.t..t.",
+        "..t..t.t.t.",
+        "..t.t..t...",
+        ".t..t...t..",
+        "...........",
+      ],
+      [
+        "....kkk....",
+        "...kPPPk...",
+        "..kPhPPPk..",
+        "..kPhPPPk..",
+        "..kPPPPPk..",
+        "..kpPpPpk..",
+        "...kkkkk...",
+        "...t.t.t...",
+        "...t.t.t...",
+        "..t..t..t..",
+        "...t.t.t...",
+        "..t..t..t..",
+        "...t...t...",
+        "..t.....t..",
+      ],
+    ],
+    rate: 4,
+  },
+  /** A little red crab, claws up; the two frames scuttle its legs. */
+  crab: {
+    palette: { k: "#1a2a33", C: "#ff8a5a", R: "#e8573a", r: "#b33a24", e: "#ffffff", h: "#ffb08a" },
+    frames: [
+      [
+        ".kk.......kk.",
+        "kCCk.....kCCk",
+        "kCCk.k.k.kCCk",
+        ".kRk.e.e.kRk.",
+        "..kkRRRRRkk..",
+        ".kRhhRRRRRRk.",
+        ".kRRRRRRRRRk.",
+        "..krrrrrrrk..",
+        ".k.k.k.k.k.k.",
+        "k.k.......k.k",
+      ],
+      [
+        "kk.........kk",
+        "CCk.......kCC",
+        "kCCk.k.k.kCCk",
+        ".kRk.e.e.kRk.",
+        "..kkRRRRRkk..",
+        ".kRhhRRRRRRk.",
+        ".kRRRRRRRRRk.",
+        "..krrrrrrrk..",
+        "k.k.k.k.k.k.k",
+        ".k.........k.",
+      ],
+    ],
+    rate: 6,
+  },
+  /** A clam: closed, ajar, and open on its pearl. Frames are set by hand, not looped. */
+  clam: {
+    palette: { k: "#4a2f6b", S: "#c7a4ec", s: "#9c74cf", m: "#ff9ec4", w: "#ffffff", W: "#c9d6ff" },
+    frames: [
+      [
+        ".............",
+        ".............",
+        ".............",
+        "...kkkkkkk...",
+        "..kSsSsSsSk..",
+        ".kSsSsSsSsSk.",
+        ".kSsSsSsSsSk.",
+        "..kkkkkkkkk..",
+        ".............",
+      ],
+      [
+        ".............",
+        "...kkkkkkk...",
+        "..kSsSsSsSk..",
+        ".kSsSsSsSsSk.",
+        ".kkmmmmmmmkk.",
+        ".kSsSsSsSsSk.",
+        ".kSsSsSsSsSk.",
+        "..kkkkkkkkk..",
+        ".............",
+      ],
+      [
+        "..kkkkkkkkk..",
+        ".kSsSsSsSsSk.",
+        ".kSsSsSsSsSk.",
+        "..kmmmmmmmk..",
+        ".kmmmwwmmmmk.",
+        ".kmmmwWmmmmk.",
+        ".kSsSsSsSsSk.",
+        ".kSsSsSsSsSk.",
+        "..kkkkkkkkk..",
+      ],
+    ],
+  },
+  /** A small purple octopus wiggling its arms. */
+  octopus: {
+    palette: { k: "#4b2468", O: "#b072e0", h: "#dcb4f6", w: "#ffffff", e: "#1a2a33", c: "#ff8fc0" },
+    frames: [
+      [
+        "....kkkkk....",
+        "...kOOOOOk...",
+        "..kOhhOOOOk..",
+        "..kOhOOOOOk..",
+        "..kOweOweOk..",
+        "..kOcOOOcOk..",
+        "...kOOOOOk...",
+        "..kOkOkOkOk..",
+        ".kOk.kOkOkOk.",
+        ".kOk.kOk.kOk.",
+        "..kk..kk..kk.",
+        ".............",
+      ],
+      [
+        "....kkkkk....",
+        "...kOOOOOk...",
+        "..kOhhOOOOk..",
+        "..kOhOOOOOk..",
+        "..kOweOweOk..",
+        "..kOcOOOcOk..",
+        "...kOOOOOk...",
+        "..kOkOkOkOk..",
+        ".kOkOkOk.kOk.",
+        "kOk.kOk..kOk.",
+        "kk...kk...kk.",
+        ".............",
+      ],
+    ],
+    rate: 3,
+  },
+  /** A seahorse, fin fluttering. */
+  seahorse: {
+    palette: { k: "#8a4a12", Y: "#ffb84a", y: "#ffe08a", e: "#1a2a33", f: "#fff2b8" },
+    frames: [
+      [
+        "...kkk...",
+        "..kYYYk..",
+        "kkYYeYk..",
+        "kYYkYYk..",
+        ".kk.kYYk.",
+        "....kYyk.",
+        "...kYYykf",
+        "...kYYykf",
+        "...kYYyk.",
+        "....kYyk.",
+        ".....kYk.",
+        "...kk.Yk.",
+        "...kYYk..",
+        "....kk...",
+      ],
+      [
+        "...kkk...",
+        "..kYYYk..",
+        "kkYYeYk..",
+        "kYYkYYk..",
+        ".kk.kYYk.",
+        "....kYykf",
+        "...kYYyk.",
+        "...kYYykf",
+        "...kYYyk.",
+        "....kYyk.",
+        ".....kYk.",
+        "...kk.Yk.",
+        "...kYYk..",
+        "....kk...",
+      ],
+    ],
+    rate: 5,
+  },
+  /** A sea turtle paddling, facing right. */
+  turtle: {
+    palette: { k: "#1f3d2a", G: "#5fa86a", g: "#3f7f4f", S: "#a8d88a", s: "#7cbc6a", e: "#1a2a33", b: "#e8d8a0" },
+    frames: [
+      [
+        "......kkkkkk.......",
+        "....kkGgGGgGkk.....",
+        "...kGgGGgGGgGGk.kk.",
+        "..kGGgGGgGGgGGgkSSk",
+        "..kGgGGgGGgGGgGkSek",
+        "..kbbbbbbbbbbbbkSSk",
+        ".kSk.kkkkkkkkkkSSk.",
+        "kSSk......kSSk.kk..",
+        "kSk........kSSk....",
+        ".k..........kk.....",
+      ],
+      [
+        "......kkkkkk.......",
+        "....kkGgGGgGkk.....",
+        "...kGgGGgGGgGGk.kk.",
+        "..kGGgGGgGGgGGgkSSk",
+        "..kGgGGgGGgGGgGkSek",
+        "..kbbbbbbbbbbbbkSSk",
+        "..kSSkkkkkkkSSkSSk.",
+        "...kSSk....kSSk.kk.",
+        "....kk......kk.....",
+        "...................",
+      ],
+    ],
+    rate: 3,
+  },
+  /** A pufferfish, normal and puffed up. Frames are set by hand. */
+  puffer: {
+    palette: { k: "#7a4a10", Y: "#ffd45a", y: "#fff0b0", e: "#1a2a33", m: "#ff7a5a", T: "#ffb02a", s: "#c98a2a" },
+    frames: [
+      [
+        ".............",
+        ".............",
+        ".............",
+        "....kkkkk....",
+        "...kYYYYYk...",
+        ".kkYYYYYeYk..",
+        "kTkYyyyyYYmk.",
+        ".kkYyyyyYYk..",
+        "...kYYYYYk...",
+        "....kkkkk....",
+        ".............",
+      ],
+      [
+        "...s..s..s...",
+        ".s..kkkkk..s.",
+        "...kYYYYYk...",
+        "s.kYYYYYYYk.s",
+        "..kYYYYYYeYk.",
+        "kkYyyyyyYYYmk",
+        "TkYyyyyyyYYk.",
+        "kkYyyyyyYYYk.",
+        "s.kYYYYYYYk.s",
+        "...kYYYYYk...",
+        ".s..kkkkk..s.",
+      ],
+    ],
+  },
+  /** An orange starfish. */
+  starfish: {
+    palette: { o: "#ff8a4a", O: "#ffd08a" },
+    frames: [
+      [
+        "....o....",
+        "...ooo...",
+        "...oOo...",
+        "ooooOoooo",
+        ".ooOOOoo.",
+        "..ooOoo..",
+        "..oo.oo..",
+        ".oo...oo.",
+        ".o.....o.",
+      ],
+    ],
+  },
+  /** A pink starfish. */
+  starfishPink: {
+    palette: { o: "#ff6fa8", O: "#ffc8de" },
+    frames: [
+      [
+        "....o....",
+        "...ooo...",
+        "...oOo...",
+        "ooooOoooo",
+        ".ooOOOoo.",
+        "..ooOoo..",
+        "..oo.oo..",
+        ".oo...oo.",
+        ".o.....o.",
+      ],
+    ],
+  },
+};

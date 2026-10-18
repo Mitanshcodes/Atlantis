@@ -16,16 +16,16 @@ export const SHEETS = {
   treasure: "assets/city/underwater/sunken_treasures.png",
   wreck: "assets/city/underwater/shipwreck.png",
   bubbles: "assets/city/underwater/air_bubbles.png",
+  rocks: "assets/city/underwater/ground_rocks.png",
 } as const;
 
 export type SheetKey = keyof typeof SHEETS;
 
 /**
- * The player: a hooded walker from the craftpix ruined-temple pack. Each sheet is 32 x 32 frames
- * in four rows (facing down, left, right, up); the walk has 6 frames a row, the idle 12.
+ * The player: a hooded figure from the craftpix ruined-temple pack. The idle sheet is 32 x 32
+ * frames in four rows (facing down, left, right, up), 12 frames a row.
  */
 export const PLAYER = {
-  walk: { key: "player-walk", url: "assets/sprites/player_walk.png", frames: 6 },
   idle: { key: "player-idle", url: "assets/sprites/player_idle.png", frames: 12 },
   frame: 32,
   /** The row of the frame where the feet (and the baked-in shadow) end. */
@@ -101,6 +101,23 @@ export const FRAMES = {
     podsPurple: [16, 144, 32, 16],
     podsGreen: [112, 144, 32, 16],
     anemone: [149, 262, 22, 20],
+    anemoneFringe: [132, 240, 40, 16],
+    anemoneFringeLow: [148, 288, 40, 16],
+    kelpCurlySmall: [178, 36, 14, 28],
+    tubeSmall: [112, 81, 16, 15],
+    tubeBunch: [166, 76, 23, 20],
+    tubeTrio: [134, 77, 20, 19],
+    tubePile: [131, 107, 25, 21],
+    tubePileAlt: [163, 107, 25, 21],
+    podPurple: [18, 145, 12, 15],
+    podPurpleMid: [33, 148, 14, 12],
+    podsPurpleCluster: [67, 144, 23, 16],
+    podOrange: [178, 145, 12, 15],
+    podOrangeMid: [161, 148, 14, 12],
+    podsOrangeCluster: [123, 145, 20, 15],
+    coralBranch: [50, 176, 30, 48],
+    coralBranchThin: [32, 178, 16, 46],
+    coralBranchSmall: [17, 193, 14, 31],
   },
   ruins: {
     colonnade: [16, 16, 288, 96],
@@ -130,6 +147,15 @@ export const FRAMES = {
     medium: [18, 33, 5, 5],
     large: [36, 35, 9, 9],
     bubble: [32, 16, 16, 16],
+    ring: [17, 17, 12, 14],
+    huge: [48, 16, 32, 32],
+  },
+  rocks: {
+    rockMossyBig: [208, 177, 62, 47],
+    rockMossyTall: [275, 193, 28, 31],
+    rockMossyLow: [214, 266, 36, 22],
+    rockMossyLowAlt: [261, 266, 39, 22],
+    rockPebbles: [243, 96, 22, 14],
   },
 } as const satisfies Partial<Record<SheetKey, Record<string, Rect>>>;
 
@@ -148,7 +174,7 @@ export function frameRect(ref: SpriteRef): Rect {
 
 /** Textures drawn at runtime in Boot (no art yet, or simple enough to generate). */
 export const GENERATED = {
-  fish: ["gen-fish-gold", "gen-fish-teal", "gen-fish-coral"],
+  fish: ["gen-fish-gold", "gen-fish-teal", "gen-fish-coral", "gen-fish-clown", "gen-fish-tang"],
   beam: "gen-light-beam",
   mote: "gen-mote",
   glow: "gen-glow",
@@ -159,4 +185,18 @@ export const GENERATED = {
   depth: "gen-depth",
   lamp: "gen-lamp",
   kelpBed: "gen-kelp-bed",
+} as const;
+
+/** Sea creatures drawn in Boot (no pack has any). Each is a small sheet of animation frames. */
+export const CRITTERS = {
+  jelly: "critter-jelly",
+  jellyBlue: "critter-jelly-blue",
+  crab: "critter-crab",
+  clam: "critter-clam",
+  octopus: "critter-octopus",
+  seahorse: "critter-seahorse",
+  turtle: "critter-turtle",
+  puffer: "critter-puffer",
+  starfish: "critter-starfish",
+  starfishPink: "critter-starfish-pink",
 } as const;

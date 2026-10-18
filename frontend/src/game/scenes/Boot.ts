@@ -1,5 +1,6 @@
 import Phaser from "phaser";
-import { FRAMES, GENERATED, PLAYER, SHEETS, type Rect } from "../assets";
+import { CRITTERS, FRAMES, GENERATED, PLAYER, SHEETS, type Rect } from "../assets";
+import { CRITTER_ART } from "../critterArt";
 import { drawGlints, drawGround } from "../ground";
 import { seededRandom } from "../random";
 
@@ -11,9 +12,7 @@ export class Boot extends Phaser.Scene {
 
   preload(): void {
     for (const [key, url] of Object.entries(SHEETS)) this.load.image(key, url);
-    for (const sheet of [PLAYER.walk, PLAYER.idle]) {
-      this.load.spritesheet(sheet.key, sheet.url, { frameWidth: PLAYER.frame, frameHeight: PLAYER.frame });
-    }
+    this.load.spritesheet(PLAYER.idle.key, PLAYER.idle.url, { frameWidth: PLAYER.frame, frameHeight: PLAYER.frame });
   }
 
   create(): void {
@@ -27,6 +26,7 @@ export class Boot extends Phaser.Scene {
     drawLamp(this);
     drawKelpBed(this);
     drawFish(this);
+    drawCritters(this);
     drawBeam(this);
     drawGlow(this);
     drawCaustics(this);
@@ -43,36 +43,56 @@ function canvas(scene: Phaser.Scene, key: string, w: number, h: number) {
   return { texture, ctx: texture.getContext() };
 }
 
-/** Draw a pixel map: one string per row, one palette letter per pixel, "." for transparent. */
-function pixelTexture(scene: Phaser.Scene, key: string, rows: string[], palette: Record<string, string>): void {
-  const { texture, ctx } = canvas(scene, key, rows[0].length, rows.length);
+/** Paint a pixel map at ``ox``: one string per row, one palette letter per pixel, "." for transparent. */
+function paintRows(ctx: CanvasRenderingContext2D, rows: string[], palette: Record<string, string>, ox = 0): void {
   rows.forEach((row, y) =>
     [...row].forEach((ch, x) => {
       if (ch === ".") return;
       ctx.fillStyle = palette[ch];
-      ctx.fillRect(x, y, 1, 1);
+      ctx.fillRect(ox + x, y, 1, 1);
     }),
   );
+}
+
+function pixelTexture(scene: Phaser.Scene, key: string, rows: string[], palette: Record<string, string>): void {
+  const { texture, ctx } = canvas(scene, key, rows[0].length, rows.length);
+  paintRows(ctx, rows, palette);
   texture.refresh();
 }
 
-/** "walk-down", "idle-left" and so on: one looping animation per sheet row. */
-function createPlayerAnimations(scene: Phaser.Scene): void {
-  PLAYER.facings.forEach((facing, row) => {
-    for (const [name, sheet, rate] of [
-      ["walk", PLAYER.walk, 10],
-      ["idle", PLAYER.idle, 6],
-    ] as const) {
+/** Each sea creature becomes a strip of frames (named 0, 1, ...) and, if it has a rate, a looping animation. */
+function drawCritters(scene: Phaser.Scene): void {
+  for (const [name, art] of Object.entries(CRITTER_ART)) {
+    const key = CRITTERS[name as keyof typeof CRITTERS];
+    const w = art.frames[0][0].length;
+    const h = art.frames[0].length;
+    const { texture, ctx } = canvas(scene, key, w * art.frames.length, h);
+    art.frames.forEach((rows, i) => {
+      paintRows(ctx, rows, art.palette, i * w);
+      texture.add(i, 0, i * w, 0, w, h);
+    });
+    texture.refresh();
+    if (art.rate) {
       scene.anims.create({
-        key: `${name}-${facing}`,
-        frames: scene.anims.generateFrameNumbers(sheet.key, {
-          start: row * sheet.frames,
-          end: row * sheet.frames + sheet.frames - 1,
-        }),
-        frameRate: rate,
+        key,
+        frames: art.frames.map((_, i) => ({ key, frame: i })),
+        frameRate: art.rate,
         repeat: -1,
       });
     }
+  }
+}
+
+/** "idle-down", "idle-left" and so on: one looping animation per sheet row. */
+function createPlayerAnimations(scene: Phaser.Scene): void {
+  const { key, frames } = PLAYER.idle;
+  PLAYER.facings.forEach((facing, row) => {
+    scene.anims.create({
+      key: `idle-${facing}`,
+      frames: scene.anims.generateFrameNumbers(key, { start: row * frames, end: row * frames + frames - 1 }),
+      frameRate: 6,
+      repeat: -1,
+    });
   });
 }
 
@@ -135,16 +155,27 @@ function drawKelpBed(scene: Phaser.Scene): void {
   texture.refresh();
 }
 
+/** Five kinds of reef fish, facing right: gold, teal, coral, a striped clownfish and a blue tang. */
 function drawFish(scene: Phaser.Scene): void {
-  const schemes: Array<[string, string]> = [
-    ["#f0b43c", "#c27d1c"],
-    ["#7fe3e0", "#2bb3c0"],
-    ["#e8624a", "#b23a2a"],
+  // body, back and fins, tail, stripe
+  const schemes: Array<[string, string, string, string]> = [
+    ["#f0b43c", "#c27d1c", "#c27d1c", "#ffd77a"],
+    ["#7fe3e0", "#2b8f9c", "#2bb3c0", "#c4fff6"],
+    ["#ff7a5a", "#b23a2a", "#e8573a", "#ffb09a"],
+    ["#ff8a2a", "#1a2a33", "#ff8a2a", "#ffffff"],
+    ["#3a7bff", "#1d3f9a", "#ffd23a", "#1d3f9a"],
   ];
-  const rows = ["..BBBB..", "TBbbbbB.", "TTbbbbeB", "TBbbbbB.", "..BBBB.."];
+  const rows = [
+    "...BBBB...",
+    ".TBbbsbbB.",
+    "TTbbbsbbeB",
+    "TTbbbsbbbB",
+    ".TBbbsbbB.",
+    "...BBBB...",
+  ];
   GENERATED.fish.forEach((key, i) => {
-    const [body, back] = schemes[i];
-    pixelTexture(scene, key, rows, { b: body, B: back, T: back, e: "#10202a" });
+    const [body, back, tail, stripe] = schemes[i];
+    pixelTexture(scene, key, rows, { b: body, B: back, T: tail, s: stripe, e: "#10202a" });
   });
 }
 

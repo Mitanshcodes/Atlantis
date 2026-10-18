@@ -101,13 +101,6 @@ export function groundAt(x: number, y: number): Ground {
   return r < CANALS[1][0] ? "sandstone" : "stone";
 }
 
-/** Which walkable level a point belongs to: 0 the island, 1 the middle ring, 2 the outer ring. */
-export function levelOf(r: number): 0 | 1 | 2 {
-  if (r < (CANALS[0][0] + CANALS[0][1]) / 2) return 0;
-  if (r < (CANALS[1][0] + CANALS[1][1]) / 2) return 1;
-  return 2;
-}
-
 /** Half the road's height at a given angle: a ring road looks taller where it runs north-south. */
 function roadHalfHeight(deg: number): number {
   return ROAD_HALF / Math.max(0.4, ASPECT * Math.abs(Math.sin(toRad(deg))));
