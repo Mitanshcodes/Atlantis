@@ -1154,16 +1154,163 @@
   cursor: var(--cursor-default, auto);
 }
 
-/* The drowned city, far below and very dark, drifting slowly closer. */
+/* The drowned city, clear and bright behind the story, drifting slowly closer. */
 .cine__sea {
   position: absolute;
   inset: -4%;
-  background:
-    radial-gradient(ellipse at 50% 45%, rgba(2, 7, 12, 0.35), rgba(2, 7, 12, 0.92) 70%),
-    url(/assets/opening/title/title_scene.png) center / cover no-repeat;
-  filter: saturate(0.6) brightness(0.55);
-  image-rendering: pixelated;
+  overflow: hidden;
+  filter: saturate(0.95) brightness(0.92);
   animation: cine-drift 40s ease-out forwards;
+}
+
+/* A soft vignette over the edges. */
+.cine__sea::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 45%, rgba(2, 7, 12, 0), rgba(2, 7, 12, 0.35) 80%);
+}
+
+/* The art itself, sized like ``cover`` (the sea is 108vw x 108vh), so the stars, moon and water
+   placed on it in percent stay on their spots at any window size. */
+.cine__scene {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(108vw, 172.8vh);
+  aspect-ratio: 400 / 250;
+  transform: translate(-50%, -50%);
+  background: url(/assets/opening/title/title_scene.png) center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+
+.cine__scene i {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+/* Stars: pixel specks that brighten and fade, each to its own slow beat. */
+.cine__star {
+  width: 3px;
+  height: 3px;
+  background: #fffbe6;
+  opacity: 0.25;
+  animation: star-twinkle 3s steps(4) infinite;
+}
+
+.cine__star--big {
+  width: 3px;
+  height: 3px;
+  box-shadow:
+    3px 0 0 rgba(255, 251, 230, 0.6),
+    -3px 0 0 rgba(255, 251, 230, 0.6),
+    0 3px 0 rgba(255, 251, 230, 0.6),
+    0 -3px 0 rgba(255, 251, 230, 0.6);
+}
+
+@keyframes star-twinkle {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* The moon: a halo that breathes, and now and then a glint of light on its rim. */
+.cine__moon {
+  left: 84.5%;
+  top: 14.8%;
+  width: 13%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 248, 214, 0.42) 0 24%, rgba(255, 248, 214, 0.18) 40%, transparent 68%);
+  animation: moon-glow 4.5s ease-in-out infinite;
+}
+
+@keyframes moon-glow {
+  50% {
+    opacity: 0.55;
+    scale: 1.06;
+  }
+}
+
+.cine__moon-sparkle {
+  left: 82.2%;
+  top: 10.4%;
+  width: 14px;
+  height: 14px;
+  translate: -50% -50%;
+  background:
+    linear-gradient(#fffbe6, #fffbe6) center / 2px 100% no-repeat,
+    linear-gradient(#fffbe6, #fffbe6) center / 100% 2px no-repeat;
+  opacity: 0;
+  animation: moon-sparkle 5s steps(5) infinite;
+}
+
+@keyframes moon-sparkle {
+  0%,
+  70%,
+  100% {
+    opacity: 0;
+    scale: 0.4;
+  }
+  80% {
+    opacity: 1;
+    scale: 1;
+  }
+  90% {
+    opacity: 0.4;
+    scale: 0.7;
+  }
+}
+
+/* The water: faint swell lines rolling slowly down from the horizon, and drifting glints. */
+.cine__swell {
+  left: 0;
+  top: 41.5%;
+  width: 64%;
+  height: 26%;
+  background: repeating-linear-gradient(0deg, transparent 0 7px, rgba(170, 245, 238, 0.07) 7px 9px);
+  -webkit-mask: linear-gradient(90deg, #000 70%, transparent), linear-gradient(#000 60%, transparent);
+  -webkit-mask-composite: source-in;
+  mask: linear-gradient(90deg, #000 70%, transparent), linear-gradient(#000 60%, transparent);
+  mask-composite: intersect;
+  animation: swell-roll 7s linear infinite;
+}
+
+@keyframes swell-roll {
+  to {
+    background-position: 0 18px;
+  }
+}
+
+.cine__glint {
+  height: 2px;
+  background: rgba(214, 255, 250, 0.85);
+  opacity: 0;
+  animation: glint-drift 6s ease-in-out infinite;
+}
+
+@keyframes glint-drift {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  35% {
+    opacity: 0.8;
+  }
+  70% {
+    opacity: 0;
+    translate: 24px 0;
+  }
+  100% {
+    opacity: 0;
+    translate: 24px 0;
+  }
 }
 
 @keyframes cine-drift {
@@ -1192,56 +1339,68 @@
   }
 }
 
-.cine__text {
+/* The dialogue box and, below it, Set sail: anchored to the foot of the screen, under the horizon. */
+.cine__stage {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: clamp(16px, 4vh, 40px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 0 16px;
+}
+
+.story-box {
   position: relative;
-  width: min(1000px, calc(100% - 48px));
-  text-align: center;
+  box-sizing: border-box;
+  width: min(800px, 100%);
+  min-height: 120px;
+  padding: 26px 34px 30px;
+  background: rgba(9, 22, 38, 0.86);
+  border: 3px solid var(--gold);
+  box-shadow:
+    inset 0 0 0 2px var(--ink),
+    0 0 0 3px var(--ink),
+    6px 8px 0 2px rgba(0, 0, 0, 0.35);
+  image-rendering: pixelated;
+  transition: opacity 200ms linear;
 }
 
-.cine__line {
-  margin: 0 0 18px;
-  font-family: var(--font-title);
-  font-weight: 700;
-  font-size: clamp(22px, 2.6vw, 36px);
-  line-height: 1.3;
-  color: #e9f4f2;
-  text-shadow: 0 0 24px rgba(41, 168, 176, 0.35), 0 2px 0 #000;
-  max-height: 240px;
-  overflow: hidden;
-  transition: opacity 0.8s, color 0.8s, max-height 0.9s ease, margin 0.9s ease;
-}
-
-.cine__line.is-gone {
-  max-height: 0;
-  margin: 0;
+.story-box.is-fading {
   opacity: 0;
 }
 
-.cine__line.is-past {
-  opacity: 0.38;
+.story-box__line {
+  margin: 0;
+  font-family: var(--font-pixel);
+  font-weight: 400;
+  font-size: clamp(18px, 2.2vw, 27px);
+  line-height: 1.45;
+  color: #f2ecdc;
+  text-shadow: 2px 2px 0 #000;
 }
 
-.cine__line--big {
-  margin: 10px 0 26px;
-  font-size: clamp(32px, 4.4vw, 62px);
-  letter-spacing: 0.02em;
-  color: #fff;
+.story-box__line--ancient {
+  color: #a8b8b6;
 }
 
-.cine__line--gold {
-  margin-top: 14px;
-  font-size: clamp(26px, 3.2vw, 44px);
+.story-box__line--gold {
   color: var(--gold-light);
-  text-shadow: 0 0 28px rgba(242, 205, 110, 0.45), 0 2px 0 #000;
 }
 
-.cine__caret {
-  display: inline-block;
-  width: 0.08em;
-  height: 0.9em;
-  margin-left: 4px;
-  vertical-align: -0.08em;
-  background: currentColor;
+.story-box__unwritten {
+  visibility: hidden;
+}
+
+.story-box__next {
+  position: absolute;
+  right: 16px;
+  bottom: 8px;
+  font-family: var(--font-pixel);
+  font-size: 16px;
+  color: var(--gold-light);
   animation: cine-blink 0.9s steps(1) infinite;
 }
 
@@ -1276,15 +1435,16 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  margin-top: 26px;
   opacity: 0;
   transform: translateY(10px);
-  transition: opacity 0.8s, transform 0.8s;
+  transition: opacity 0.5s, transform 0.5s;
+  pointer-events: none;
 }
 
 .cine__foot.is-shown {
   opacity: 1;
   transform: none;
+  pointer-events: auto;
 }
 
 .cine__sail {
@@ -1295,13 +1455,37 @@
 .cine__hint {
   margin: 0;
   font-size: 14px;
-  color: rgba(233, 244, 242, 0.5);
+  color: rgba(233, 244, 242, 0.85);
+  text-shadow: 1px 1px 0 #000, 0 0 6px #000;
+}
+
+@media (max-width: 600px) {
+  .story-box {
+    min-height: 96px;
+    padding: 18px 20px 24px;
+  }
+
+  .cine__skip {
+    top: 16px;
+    right: 16px;
+  }
+
+  .cine__back {
+    top: 22px;
+    left: 16px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .cine__sea,
   .cine__bubbles i,
-  .cine__caret {
+  .cine__scene i,
+  .story-box__next {
     animation: none;
+  }
+
+  .story-box,
+  .cine__foot {
+    transition: none;
   }
 }
