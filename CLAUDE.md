@@ -407,6 +407,13 @@ cd frontend && npm install && npm run dev                      # proxies /api to
 - Nessie records per move: deposits (wages, sales, dividends, interest, advances), purchases at the five world merchants (Market, Exchange, Passage, Council) or withdrawals, Purse↔Vault/credit transfers, a `credit` card account, **loan records** for the guild, circle, Black Reef and Bank loans with **PUT `loan_update`** whenever a balance changes, and bill records with `bill_update` when bills are verified.
 - Loan/bill records are only emitted when `NESSIE_LOANS_VERIFIED` / `NESSIE_BILLS_VERIFIED` are true, because P2's sync holds every later effect behind an unverified one. Money always moves either way. A paid-off loan's remote record keeps its last amount (no PUT to 0 until verified live).
 
+## Deploying
+
+- **Frontend → Vercel**, project root `frontend/` (`frontend/vercel.json`). Vercel serves the Vite build and forwards `/api/*` to the backend, so the browser never needs CORS.
+- **Backend → Render**, from `render.yaml` (free web service, root `backend/`, `uvicorn app.main:app`). Secrets (`NESSIE_API_KEY`, `OPENAI_API_KEY`) are set in Render's dashboard. Vercel can't run it: games live in SQLite and Nessie sync runs on a background thread, and serverless keeps neither.
+- **Free Render limits:** it sleeps after 15 minutes idle (the first request then takes ~30s; open the site a minute before a demo) and its disk is wiped on every redeploy or restart, so saved games don't survive one.
+- If the Render URL isn't `atlantis-api.onrender.com`, change the rewrite in `frontend/vercel.json`.
+
 ## Content (all the game's writing)
 
 Every player-facing line lives in `backend/app/content/*.json`, shared by the engine (news, Chronicle) and the frontend (`frontend/src/ui/copy.ts` only types it; Vite alias `@content`). Edit the JSON, not the code:

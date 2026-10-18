@@ -1,0 +1,35 @@
+# Render blueprint for the backend (FastAPI + SQLite + the Nessie sync worker).
+# The frontend is on Vercel and forwards /api here (frontend/vercel.json).
+# Secrets (sync: false) are typed into Render's dashboard, never committed.
+services:
+  - type: web
+    name: atlantis-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: NESSIE_API_KEY
+        sync: false
+      - key: NESSIE_BASE_URL
+        value: https://prod-api.nessieisreal.com
+      - key: NESSIE_LIVE
+        value: "true"
+      - key: NESSIE_LOANS_VERIFIED
+        value: "true"
+      - key: NESSIE_BILLS_VERIFIED
+        value: "false"
+      - key: NESSIE_TRANSACTION_RECORDS_ONLY
+        value: "true"
+      - key: ATLANTIS_ENGINE
+        value: p1
+      - key: ATLANTIS_DB
+        value: atlantis.sqlite3
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
