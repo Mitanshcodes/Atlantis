@@ -75,6 +75,13 @@ export function App() {
     return EventBus.on("city-ready", () => EventBus.emit("npc-alerts", alerts));
   }, [alerts]);
 
+  // Atlantis sinks a little more each season: the city's water darkens with the year.
+  const seasonIndex = shown ? viewOf(shown.state).season_index ?? 0 : 0;
+  useEffect(() => {
+    EventBus.emit("world-season", seasonIndex);
+    return EventBus.on("city-ready", () => EventBus.emit("world-season", seasonIndex));
+  }, [seasonIndex]);
+
   useEffect(
     () =>
       EventBus.on("building-entered", (id) => {

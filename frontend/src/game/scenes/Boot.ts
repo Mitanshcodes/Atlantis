@@ -4,6 +4,9 @@ import { CRITTERS, FRAMES, GENERATED, PLAYER, SHEETS, type Rect } from "../asset
 import { CRITTER_ART } from "../critterArt";
 import { NPCS, NPC_FRAME, npcSheetKey, npcSheetUrl } from "../npcs";
 import { drawGlints, drawGround } from "../ground";
+import { CX, TERRACE_WALL, TERRACE_Y, WORLD_W } from "../geometry";
+import { ORNAMENTS } from "../ornaments";
+import { Pixels, SKYLINE_WATERLINE, paintSkyline } from "../skylineArt";
 import { seededRandom } from "../random";
 
 /** Loads every sheet, names its frames, draws the generated textures, then starts the city. */
@@ -38,6 +41,10 @@ export class Boot extends Phaser.Scene {
     drawLamp(this);
     drawKelpBed(this);
     drawAlert(this);
+    drawSkyline(this);
+    drawRing(this);
+    drawOrnaments(this);
+    drawCrystal(this);
     drawFish(this);
     drawCritters(this);
     drawBeam(this);
@@ -165,6 +172,74 @@ function drawAlert(scene: Phaser.Scene): void {
   pixelTexture(scene, GENERATED.alert, rows, { k: "#1a2a33", g: "#f2cd6e" });
 }
 
+/** The skyline painting over the top of the map, down to the front of its terrace. */
+function drawSkyline(scene: Phaser.Scene): void {
+  const h = TERRACE_Y - TERRACE_WALL;
+  const { texture, ctx } = canvas(scene, GENERATED.skyline, WORLD_W, h);
+  const image = ctx.createImageData(WORLD_W, h);
+  image.data.set(paintSkyline(WORLD_W, h, SKYLINE_WATERLINE, CX));
+  ctx.putImageData(image, 0, 0);
+  texture.refresh();
+}
+
+/** The sandstone ring's temples, fountains, statues and planters, painted like the skyline. */
+function drawOrnaments(scene: Phaser.Scene): void {
+  for (const o of ORNAMENTS) {
+    const px = new Pixels(o.w, o.h);
+    o.paint(px);
+    const { texture, ctx } = canvas(scene, o.key, o.w, o.h);
+    const image = ctx.createImageData(o.w, o.h);
+    image.data.set(px.data);
+    ctx.putImageData(image, 0, 0);
+    texture.refresh();
+  }
+}
+
+/** A soft ring of light; several of them swirl around the crystal. */
+function drawRing(scene: Phaser.Scene): void {
+  const w = 64;
+  const h = 18;
+  const { texture, ctx } = canvas(scene, GENERATED.ring, w, h);
+  ctx.strokeStyle = "rgba(200, 255, 248, 0.35)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(w / 2, h / 2, w / 2 - 3, h / 2 - 3, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  texture.refresh();
+}
+
+/**
+ * The floating orichalcum crystal, 21 x 36: a long diamond lit from the left, with a bright core
+ * and a dark facet on the right.
+ */
+function drawCrystal(scene: Phaser.Scene): void {
+  const w = 21;
+  const h = 36;
+  const waist = 13; // the widest row
+  const r = (w - 1) / 2;
+  const { texture, ctx } = canvas(scene, GENERATED.crystal, w, h);
+  for (let y = 0; y < h; y++) {
+    const half = Math.round(y < waist ? (y / waist) * r : ((h - 1 - y) / (h - 1 - waist)) * r);
+    for (let dx = -half; dx <= half; dx++) {
+      const edge = Math.abs(dx) === half;
+      ctx.fillStyle = edge
+        ? "#5a3db8"
+        : dx === -1 || dx === 0
+          ? "#fbf6ff"
+          : dx < 0
+            ? (y + dx) % 5 === 0 ? "#eedcff" : "#c9a8ff"
+            : dx < half / 2
+              ? "#a07cf0"
+              : "#7a58d8";
+      ctx.fillRect(r + dx, y, 1, 1);
+    }
+  }
+  texture.refresh();
+}
+
 /** One fenced bed of the kelp farm: dark silt in a timber frame, 128 x 12. */
 function drawKelpBed(scene: Phaser.Scene): void {
   const w = 128;
@@ -245,7 +320,7 @@ function drawDepth(scene: Phaser.Scene): void {
   g.addColorStop(0, "rgba(8, 30, 60, 0.32)");
   g.addColorStop(0.25, "rgba(10, 50, 80, 0.08)");
   g.addColorStop(0.5, "rgba(10, 50, 80, 0)");
-  g.addColorStop(1, "rgba(4, 18, 28, 0.18)");
+  g.addColorStop(1, "rgba(60, 200, 210, 0.04)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 4, h);
   texture.refresh();

@@ -18,19 +18,22 @@ import {
   GATE,
   ISLAND_R,
   RING_ROADS,
+  ROAD_HALF,
   SEA_Y,
+  SKYLINE_H,
   STAIR_HALF,
+  TERRACE_Y,
   WORLD_H,
   WORLD_W,
   angleOf,
   groundAt,
-  northOfRoad,
   polar,
   radiusOf,
   type Ground,
   type Point,
 } from "./geometry";
 import { seededRandom } from "./random";
+import { ORNAMENT_SIZE } from "./ornaments";
 
 export { WORLD_H, WORLD_W };
 export const PLAYER_START: Point = { x: CX, y: ISLAND_DOOR_Y + 8 };
@@ -43,6 +46,8 @@ export interface GeneratedDecor {
   key: string;
   x: number;
   y: number;
+  /** Mirror it left to right. */
+  flip?: boolean;
 }
 
 // --- Hand-placed decor ----------------------------------------------------------------------------
@@ -54,16 +59,16 @@ const SEA_MID = Math.round((SEA_Y + WORLD_H) / 2);
 const ISLAND_FRONT_Y = Math.round(CY + ISLAND_R / ASPECT) - 6;
 
 /** The kelp farm: three fenced beds in the south-east corner of the outer ring. */
-const FARM = { x: 800, y: 584, rows: 3, rowGap: 14 } as const;
+const FARM = { x: 800, y: SKYLINE_H + 584, rows: 3, rowGap: 14 } as const;
+
+/**
+ * Where the orichalcum crystal floats: over the great dome in the skyline painting (see
+ * ``skylineArt.ts``), under the sea's surface.
+ */
+export const SKYLINE_CRYSTAL: Point = { x: CX, y: 76 };
 
 export const FIXED_DECOR: Decor[] = [
-  // The middle ring: the Herald's rostrum, an old temple floor east of the stair.
-  { sheet: "temple", frame: "plinth", ...northOfRoad(RING_ROADS[0], 52) },
-  { sheet: "greek", frame: "amphora", ...p({ x: 214, y: 214 }) },
-  { sheet: "greek", frame: "potSmall", ...p({ x: 226, y: 210 }) },
-  // The island: columns at the head of the stair, and pots by the temple steps.
-  { sheet: "temple", frame: "pillarTall", x: CX - STAIR_HALF - 12, y: ISLAND_FRONT_Y },
-  { sheet: "temple", frame: "pillarTall", x: CX + STAIR_HALF + 12, y: ISLAND_FRONT_Y },
+  // The island: pots by the temple steps (statues guard the head of the stair, in ORNAMENT_DECOR).
   { sheet: "greek", frame: "amphora", x: CX - 178, y: ISLAND_DOOR_Y - 26 },
   { sheet: "greek", frame: "potFlowers", x: CX - 160, y: ISLAND_DOOR_Y - 14 },
   { sheet: "greek", frame: "potPlant", x: CX + 176, y: ISLAND_DOOR_Y - 24 },
@@ -72,18 +77,18 @@ export const FIXED_DECOR: Decor[] = [
   { sheet: "temple", frame: "pillarTall", x: CX - STAIR_HALF - 10, y: SEA_Y - CLIFF_H - 2 },
   { sheet: "temple", frame: "pillarHalf", x: CX + STAIR_HALF + 10, y: SEA_Y - CLIFF_H - 2 },
   // Gargoyles keep watch over the Black Reef.
-  { sheet: "temple", frame: "gargoyleMossy", ...p({ x: 18, y: 150 }) },
-  { sheet: "temple", frame: "pillarMossy", ...p({ x: 128, y: 160 }) },
-  { sheet: "temple", frame: "pillarMossyHalf", ...p({ x: 140, y: 120 }) },
+  { sheet: "temple", frame: "gargoyleMossy", ...p({ x: 18, y: SKYLINE_H + 150 }) },
+  { sheet: "temple", frame: "pillarMossy", ...p({ x: 128, y: SKYLINE_H + 160 }) },
+  { sheet: "temple", frame: "pillarMossyHalf", ...p({ x: 140, y: SKYLINE_H + 120 }) },
   // Odd stones and cargo about the outer ring, below the road.
-  { sheet: "temple", frame: "pillarStump", ...p({ x: 960, y: 420 }) },
-  { sheet: "temple", frame: "flowersWhite", ...p({ x: 690, y: 560 }) },
-  { sheet: "temple", frame: "pillarMossyHalf", ...p({ x: 380, y: 584 }) },
-  { sheet: "temple", frame: "pillarStump", ...p({ x: 404, y: 586 }) },
-  { sheet: "treasure", frame: "barrelBig", ...p({ x: 300, y: 582 }) },
-  { sheet: "treasure", frame: "barrel", ...p({ x: 324, y: 586 }) },
-  { sheet: "greek", frame: "amphora", ...p({ x: 600, y: 580 }) },
-  { sheet: "greek", frame: "potSmall", ...p({ x: 614, y: 584 }) },
+  { sheet: "temple", frame: "pillarStump", ...p({ x: 960, y: SKYLINE_H + 420 }) },
+  { sheet: "temple", frame: "flowersWhite", ...p({ x: 690, y: SKYLINE_H + 560 }) },
+  { sheet: "temple", frame: "pillarMossyHalf", ...p({ x: 380, y: SKYLINE_H + 584 }) },
+  { sheet: "temple", frame: "pillarStump", ...p({ x: 404, y: SKYLINE_H + 586 }) },
+  { sheet: "treasure", frame: "barrelBig", ...p({ x: 300, y: SKYLINE_H + 582 }) },
+  { sheet: "treasure", frame: "barrel", ...p({ x: 324, y: SKYLINE_H + 586 }) },
+  { sheet: "greek", frame: "amphora", ...p({ x: 600, y: SKYLINE_H + 580 }) },
+  { sheet: "greek", frame: "potSmall", ...p({ x: 614, y: SKYLINE_H + 584 }) },
   // The sea below the city wall: a wreck that never made it out, and lost cargo.
   { sheet: "wreck", frame: "hullBuried", ...p({ x: 170, y: WORLD_H - 4 }) },
   { sheet: "treasure", frame: "chestGold", ...p({ x: 300, y: WORLD_H - 10 }) },
@@ -105,8 +110,55 @@ export const FIXED_DECOR: Decor[] = [
   ).flat(),
 ];
 
-/** Lamps along the stair and the island's front, and the kelp farm's beds. */
+const at = (pt: Point, dx = 0, dy = 0) => ({ x: Math.round(pt.x + dx), y: Math.round(pt.y + dy) });
+/** Middle of the sandstone ring's inner band (island side of the road) and outer band. */
+const INNER_BAND = (CANALS[0][1] + RING_ROADS[0] - ROAD_HALF) / 2;
+const OUTER_BAND = (RING_ROADS[0] + ROAD_HALF + CANALS[1][0]) / 2;
+/** Where the stair crosses the sandstone ring, just past each canal. */
+const STAIR_IN = Math.round(CY + CANALS[0][1] / ASPECT) + 14;
+const STAIR_OUT = Math.round(CY + CANALS[1][0] / ASPECT) - 4;
+
+/**
+ * The sandstone ring, laid out like the gardens of a temple district and mirrored about the stair:
+ * tholoi with urns and two fountains either side of the stair, statues guarding the stair and the
+ * east and west bridges, cypresses in planters along the stair, and an old ruined colonnade across
+ * the island to the north. Everything is painted in the skyline's style (ornaments.ts).
+ */
+const ORNAMENT_DECOR: GeneratedDecor[] = [
+  ...[50, 130].flatMap((deg) => {
+    const spot = polar(OUTER_BAND, deg);
+    return [
+      { key: GENERATED.tholos, ...at(spot, 0, 8) },
+      { key: GENERATED.urn, ...at(spot, -24, 8) },
+      { key: GENERATED.urn, ...at(spot, 24, 8) },
+    ];
+  }),
+  { key: GENERATED.fountain, ...at(polar(INNER_BAND, 60), 0, 10) },
+  { key: GENERATED.fountain, ...at(polar(INNER_BAND, 120), 0, 10) },
+  // Across the island to the north: the old colonnade, half fallen, mirrored either side.
+  { key: GENERATED.ruin, ...at(polar(OUTER_BAND, -74), 0, 10), flip: true },
+  { key: GENERATED.ruin, ...at(polar(OUTER_BAND, -106), 0, 10) },
+  ...[-1, 1].flatMap((side) => [
+    // The head of the stair on the island, and where it enters the sandstone ring.
+    { key: GENERATED.statue, x: CX + side * (STAIR_HALF + 12), y: ISLAND_FRONT_Y },
+    { key: GENERATED.statue, x: CX + side * (STAIR_HALF + 12), y: STAIR_IN },
+    { key: GENERATED.planterCypress, x: CX + side * (STAIR_HALF + 12), y: STAIR_OUT },
+    { key: GENERATED.urn, x: CX + side * (STAIR_HALF + 30), y: STAIR_OUT },
+    // Either side of the east and west bridges.
+    { key: GENERATED.statue, ...at(polar(CANALS[0][1] + 14, side < 0 ? 180 : 0), 0, -14) },
+    { key: GENERATED.statue, ...at(polar(CANALS[0][1] + 14, side < 0 ? 180 : 0), 0, 34) },
+  ]),
+];
+
+/** Fountains, for their spray. */
+export const FOUNTAINS: Point[] = ORNAMENT_DECOR.filter((d) => d.key === GENERATED.fountain).map((d) => ({
+  x: d.x,
+  y: d.y - 24,
+}));
+
+/** Lamps along the stair and the island's front, the kelp farm's beds, and the ring's ornaments. */
 export const GENERATED_DECOR: GeneratedDecor[] = [
+  ...ORNAMENT_DECOR,
   ...[CY + 160, CY + 230, CY + 300].flatMap((y) => [
     { key: GENERATED.lamp, x: CX - STAIR_HALF - 6, y },
     { key: GENERATED.lamp, x: CX + STAIR_HALF + 6, y },
@@ -165,7 +217,7 @@ function initialBlockers(): Box[] {
     ]),
     ...FIXED_DECOR.map((d) => spriteBox(d, d.x, d.y, 4)),
     ...GENERATED_DECOR.map((d) => {
-      const half = d.key === GENERATED.lamp ? 6 : 66;
+      const half = d.key === GENERATED.lamp ? 6 : d.key === GENERATED.kelpBed ? 66 : (ORNAMENT_SIZE[d.key]?.w ?? 12) / 2 + 4;
       return { x1: d.x - half, y1: d.y - 30, x2: d.x + half, y2: d.y + 4 };
     }),
   ];
@@ -200,7 +252,7 @@ function placeHouses(blockers: Box[], seed = 23, attempts = 900, max = 18): Deco
   for (let i = 0; i < attempts && placed.length < max; i++) {
     const ref = HOUSES[Math.floor(rand() * HOUSES.length)];
     const x = Math.round(40 + rand() * (WORLD_W - 80));
-    const y = Math.round(60 + rand() * (SEA_Y - CLIFF_H - 64));
+    const y = Math.round(TERRACE_Y + 40 + rand() * (SEA_Y - CLIFF_H - TERRACE_Y - 44));
     const box = spriteBox(ref, x, y);
     const foot = { ...box, y1: box.y2 - (box.y2 - box.y1) * FOOTPRINT };
     if (!onGround(foot, STONE) || blockers.some((b) => overlaps(b, box))) continue;
@@ -338,7 +390,7 @@ export function buildDecor(): Decor[] {
     ...kelpFringe(blockers),
     ...scatterVegetation(blockers, STONE, world, 240, 11),
     ...scatterVegetation(blockers, SEA, seabed, 90, 12),
-    ...scatterVegetation(blockers, SANDSTONE, world, 34, 15, BORDER, 24),
+    ...scatterVegetation(blockers, SANDSTONE, world, 22, 15, BORDER, 24),
   ];
 }
 
@@ -350,7 +402,8 @@ export function buildDecor(): Decor[] {
  */
 export function nearestWalkable(pt: Point): Point {
   const x = Math.round(Math.min(WORLD_W - 10, Math.max(10, pt.x)));
-  const y = Math.round(Math.min(WORLD_H - 6, Math.max(30, pt.y)));
+  // The skyline terrace is scenery: the player stays in the city below its wall.
+  const y = Math.round(Math.min(WORLD_H - 6, Math.max(TERRACE_Y + 8, pt.y)));
   const ground = groundAt(x, y);
   if (ground !== "water" && ground !== "rim") return { x, y };
   const r = radiusOf({ x, y });
@@ -386,7 +439,7 @@ export const CRITTER_HOMES = {
   clams: groundSpots(SEABED, 5, 42, 60).concat(groundSpots(STONE, 3, 43, 80)),
   starfish: groundSpots(SEABED, 8, 44, 30).concat(groundSpots(STONE, 6, 45, 60)),
   seahorses: groundSpots(SEABED, 4, 46, 80).map((p) => ({ x: p.x, y: p.y - 14 })),
-  octopuses: [...groundSpots(SEABED, 1, 47), { x: 150, y: 214 }],
+  octopuses: [...groundSpots(SEABED, 1, 47), { x: 150, y: SKYLINE_H + 214 }],
 } as const;
 
 /** Spots on the seabed and the outer stone where streams of bubbles rise from the coral. */

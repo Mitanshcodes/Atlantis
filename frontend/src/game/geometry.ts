@@ -12,13 +12,18 @@
  *   outer ring        r > 404        road at r = 458: tavern, circle, Black Reef (mossy stone)
  *   the cliff         y = SEA_Y      the city wall drops into the open sea
  *
+ * Above the rings, across the top of the map, a raised marble terrace carries the old city's
+ * temples and towers: the skyline (y < TERRACE_Y). Everything else sits SKYLINE_H lower.
+ *
  * Angles are in degrees, screen style: 0 is east, 90 is south, -90 is north.
  */
 
+/** Height of the skyline band at the top of the map. */
+export const SKYLINE_H = 262;
 export const WORLD_W = 1024;
-export const WORLD_H = 704;
+export const WORLD_H = SKYLINE_H + 704;
 export const CX = 512;
-export const CY = 262;
+export const CY = SKYLINE_H + 262;
 export const ASPECT = 1.6;
 
 export const ISLAND_R = 220;
@@ -36,10 +41,14 @@ export const AVENUE_HALF = 9;
 export const RIM = 4;
 
 /** The cliff's top edge and the sea below it. */
-export const SEA_Y = 604;
+export const SEA_Y = SKYLINE_H + 604;
 export const CLIFF_H = 14;
 /** The Sea Gate: a glowing pool at the foot of the stair. */
-export const GATE = { x: CX, y: 662, halfW: 26, halfH: 18 } as const;
+export const GATE = { x: CX, y: SKYLINE_H + 662, halfW: 26, halfH: 18 } as const;
+
+/** The skyline terrace's front edge, and the height of the retaining wall below its paving. */
+export const TERRACE_Y = SKYLINE_H;
+export const TERRACE_WALL = 12;
 
 export type Ground =
   | "plaza"
@@ -52,7 +61,9 @@ export type Ground =
   | "water"
   | "cliff"
   | "sea"
-  | "gate";
+  | "gate"
+  | "terrace"
+  | "terraceWall";
 
 export interface Point {
   x: number;
@@ -84,6 +95,7 @@ export function groundAt(x: number, y: number): Ground {
   const dy = y - CY;
   if (Math.abs(dx) < GATE.halfW && Math.abs(y - GATE.y) < GATE.halfH) return "gate";
   if (y >= SEA_Y) return onStair(x, y) ? "stair" : "sea";
+  if (y < TERRACE_Y) return y < TERRACE_Y - TERRACE_WALL ? "terrace" : "terraceWall";
   const r = Math.sqrt(dx * dx + dy * dy * ASPECT * ASPECT);
   if (r < ISLAND_R) return "plaza";
   const stair = onStair(x, y);
