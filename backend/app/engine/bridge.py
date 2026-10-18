@@ -17,6 +17,7 @@ The money itself always moves.
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence
 
 from app import config
@@ -287,6 +288,7 @@ def available_actions(s: GameState) -> List[str]:
 
 
 def _snapshot(s: GameState, version: int, class_id: str, memory: Dict[str, Any]) -> State:
+    moments = moments_of(s.log)
     engine = to_data(s)
     engine["log"] = []  # already delivered as events; keeps stored state small
     engine["ledger"] = []  # already delivered as effects
@@ -308,6 +310,8 @@ def _snapshot(s: GameState, version: int, class_id: str, memory: Dict[str, Any])
             "engine": engine,
             "bridge": memory,
             "view": view(s),
+            # What this move set off, for event cards, the Chronicle and the ending.
+            "moments": moments,
             # Tells P2's seeding that the engine emits its own obligations (guild loan, circle).
             "engine_owns_obligations": True,
         },
@@ -325,8 +329,18 @@ def view(s: GameState) -> Dict[str, Any]:
             "frozen": money.card_frozen(s),
             "secured": s.card.secured,
         }
+    spec = money.class_spec(s)
+    wage = spec.wage_range or (spec.wage + spec.wage_growth * s.season,) * 2
     return {
         "phase": s.phase.value,
+        "wage": {"min": minor(wage[0]), "max": minor(wage[1])},
+        "limits": {
+            "cellar": config.CELLAR_CAPACITY,
+            "kelp_per_season": config.KELP_EATEN_PER_SEASON,
+            "black_reef_max": minor(config.BLACK_REEF_MAX),
+            "secured_deposit": minor(config.SECURED_DEPOSIT),
+            "vault_min_standing": spec.vault_min_standing,
+        },
         "season_index": s.season,
         "tide": s.tide,
         "tides_total": s.tides_total,
@@ -487,6 +501,15 @@ def _entry_effects(e: LedgerEntry, s: GameState, add, opening: bool, bills_on: b
 # --- Events ---------------------------------------------------------------------------------------
 
 
+# What the city's voices say when a scenario or the debasement is coming (shown as news).
+CLUES = {
+    "debasement.orichalcum": "Nerissa hears the Council's vaults are short on orichalcum, and they'll thin the coin before long.",
+    "scenario.silk_boom": "Herald Kaito announces the surface kingdoms are ordering cloth by the shipload.",
+    "scenario.kelp_blight": "Nerissa says the kelp farmers are whispering about rot in the beds.",
+    "scenario.stormy_seas": "Captain Oro warns the autumn currents feel wrong, and he'd not trust a hull to them.",
+}
+
+
 def _fmt_rate(rate: float) -> str:
     return f"{rate * 100:.0f}%"
 
@@ -550,7 +573,7 @@ def describe_event(e: LogEvent) -> Optional[str]:
     if k == "debasement":
         return "The Council debased the coin. Prices, Passage and shares rose; coin did not."
     if k == "clue":
-        return f"A rumor from {d['source'].replace('_', ' ').title()} ({d['key']})."
+        return CLUES.get(d["key"], f"A rumor from {d['source'].replace('_', ' ').title()}.")
     if k == "panic":
         return "Panic swept the Exchange as the Long Dark began."
     if k == "rumor_corrected":
@@ -588,3 +611,34 @@ def describe_event(e: LogEvent) -> Optional[str]:
 
 def describe(log: Sequence[LogEvent]) -> List[str]:
     return [text for text in (describe_event(e) for e in log) if text]
+
+
+def _value(x: Any) -> Any:
+    """An enum's value (``str()`` of a str-mixin enum is "Kind.NAME" on Python 3.11+)."""
+    return x.value if isinstance(x, Enum) else x
+
+
+MOMENT_KINDS = ("event", "scroll", "season_end", "debasement", "clue", "passage_bought", "final_call",
+                "ending", "fraud_lost", "scam_revealed", "card_frozen")
+
+
+def moments_of(log: Sequence[LogEvent]) -> List[Dict[str, Any]]:
+    """The notable things in a move, structured for the UI. Nothing secret: rumors keep their
+    claim but never whether they're true."""
+    out = []
+    for e in log:
+        if e.kind not in MOMENT_KINDS:
+            continue
+        moment: Dict[str, Any] = {"kind": e.kind, "text": describe_event(e) or ""}
+        if e.kind == "event":
+            moment["event"] = _value(e.data.get("event"))
+        elif e.kind == "scroll":
+            moment["scroll"] = _value(e.data["scroll"])
+        elif e.kind == "season_end":
+            moment["season"] = SEASON_NAMES[Season(e.data["season"])]
+        elif e.kind == "ending":
+            moment["ending"] = _value(e.data["ending"])
+        elif e.kind == "clue":
+            moment["source"] = _value(e.data["source"])
+        out.append(moment)
+    return out

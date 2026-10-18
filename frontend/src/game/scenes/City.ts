@@ -49,8 +49,13 @@ export class City extends Phaser.Scene {
   private playerSprite!: Phaser.GameObjects.Sprite;
   private facing: Facing = "down";
   private hopping = false;
+<<<<<<< HEAD
   private walkers = new Map<NpcId, NpcWalker>();
   private talkingTo: NpcId | null = null;
+=======
+  /** A building asked for mid-hop (e.g. "go to the Bank" while popping out of a door). */
+  private queued?: Building;
+>>>>>>> 03328586bf350cb8a25e31d631b51b70d6d0faea
   private poof!: Phaser.GameObjects.Particles.ParticleEmitter;
   private rise!: Phaser.GameObjects.Particles.ParticleEmitter;
   private inside: BuildingId | null = null;
@@ -106,6 +111,7 @@ export class City extends Phaser.Scene {
     this.setupCamera();
     this.setupInput();
 
+<<<<<<< HEAD
     const offs = [
       EventBus.on("building-left", (id) => this.leaveBuilding(id)),
       EventBus.on("go-to-building", (id) => this.goTo(BUILDINGS_BY_ID[id])),
@@ -115,6 +121,14 @@ export class City extends Phaser.Scene {
       }),
     ];
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => offs.forEach((off) => off()));
+=======
+    const offLeft = EventBus.on("building-left", (id) => this.leaveBuilding(id));
+    const offGo = EventBus.on("go-to-building", (id) => this.goTo(BUILDINGS_BY_ID[id]));
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      offLeft();
+      offGo();
+    });
+>>>>>>> 03328586bf350cb8a25e31d631b51b70d6d0faea
     EventBus.emit("city-ready");
   }
 
@@ -285,7 +299,15 @@ export class City extends Phaser.Scene {
   }
 
   private goTo(building: Building): void {
+<<<<<<< HEAD
     if (this.inside || this.talkingTo) return;
+=======
+    if (this.inside) return;
+    if (this.hopping) {
+      this.queued = building;
+      return;
+    }
+>>>>>>> 03328586bf350cb8a25e31d631b51b70d6d0faea
     this.hopTo(building.door, () => this.enterBuilding(building.id));
   }
 
@@ -376,6 +398,9 @@ export class City extends Phaser.Scene {
       onComplete: () => {
         this.hopping = false;
         onArrive?.();
+        const next = this.queued;
+        this.queued = undefined;
+        if (next) this.goTo(next);
       },
     });
   }

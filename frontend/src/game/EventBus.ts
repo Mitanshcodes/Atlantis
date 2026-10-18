@@ -19,6 +19,7 @@ export interface GameEvents {
   "building-entered": [id: BuildingId];
   /** React closed the building's panel; the player steps back outside. */
   "building-left": [id: BuildingId];
+<<<<<<< HEAD
   /** React wants the player to go into a building (a choice in someone's dialogue). */
   "go-to-building": [id: BuildingId];
   /** The player reached someone in the street and started talking. */
@@ -27,6 +28,10 @@ export interface GameEvents {
   "npc-left": [id: NpcId];
   /** Who has something new to say, worked out by React from the engine state. */
   "npc-alerts": [alerts: Partial<Record<NpcId, boolean>>];
+=======
+  /** React sends the player to a building (an event card's "go there"); they hop over and go in. */
+  "go-to-building": [id: BuildingId];
+>>>>>>> 03328586bf350cb8a25e31d631b51b70d6d0faea
 }
 
 type Handler<K extends keyof GameEvents> = (...args: GameEvents[K]) => void;
