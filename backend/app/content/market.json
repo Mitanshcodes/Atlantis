@@ -1,0 +1,38 @@
+{
+  "goods": {
+    "kelp": {
+      "name": "Kelp",
+      "note": "Your household eats 20 a season. Dear in the Long Dark."
+    },
+    "pearls": {
+      "name": "Pearls",
+      "note": "Holds its value as prices rise."
+    },
+    "silk": {
+      "name": "Sea Silk",
+      "note": "Booms with the surface trade."
+    }
+  },
+  "houses": {
+    "oro": {
+      "name": "Oro & Daughters",
+      "note": "Steady voyages and a small dividend when they land."
+    },
+    "leviathan": {
+      "name": "Leviathan Line",
+      "note": "Big wins, big losses."
+    },
+    "deepcoral": {
+      "name": "Deepcoral Salvage",
+      "note": "One jackpot in ten. Usually sinks."
+    },
+    "silkwind": {
+      "name": "Silkwind Trading",
+      "note": "Rides the surface's appetite for silk."
+    },
+    "tide_index": {
+      "name": "The Tide Index",
+      "note": "A little of every house, for a small fee."
+    }
+  }
+}

@@ -403,6 +403,25 @@ cd frontend && npm install && npm run dev                      # proxies /api to
 - Nessie records per move: deposits (wages, sales, dividends, interest, advances), purchases at the five world merchants (Market, Exchange, Passage, Council) or withdrawals, Purse↔Vault/credit transfers, a `credit` card account, **loan records** for the guild, circle, Black Reef and Bank loans with **PUT `loan_update`** whenever a balance changes, and bill records with `bill_update` when bills are verified.
 - Loan/bill records are only emitted when `NESSIE_LOANS_VERIFIED` / `NESSIE_BILLS_VERIFIED` are true, because P2's sync holds every later effect behind an unverified one. Money always moves either way. A paid-off loan's remote record keeps its last amount (no PUT to 0 until verified live).
 
+## Content (all the game's writing)
+
+Every player-facing line lives in `backend/app/content/*.json`, shared by the engine (news, Chronicle) and the frontend (`frontend/src/ui/copy.ts` only types it; Vite alias `@content`). Edit the JSON, not the code:
+
+| File | What's in it |
+|---|---|
+| `classes.json` | The four starting places: cards, Chelo's line, the story page |
+| `buildings.json` | Each room's plain explanation (about / what you can do / cost), Old Maro's questions, the tavern's games and Nerissa's lines |
+| `events.json` | The 14 market shocks (title, story, what it means), the event deck's titles and "what it means" lines, card titles |
+| `scrolls.json` | The 13 Scrolls: name, how to earn, the real lesson |
+| `endings.json` | The four endings and the Modern Mirror lessons |
+| `market.json` | Names and notes for goods and shipping houses |
+| `scenarios.json` | The clue lines for the year scenarios and the debasement |
+| `npcs.json` | Pointer only: the townsfolk's street talk is in `frontend/src/ui/npcTalk.ts` |
+
+**Market shocks:** one unexpected market event every season, at a random tide, never repeated in a year (`config.MARKET_SHOCKS` holds the effects; `events.json` the words, under the same ids; a test checks they match).
+
+**The Drowned Bell:** Nerissa deals three games a season (`config.GAMES`): the shell game (1 in 3, pays 2.5×) and the Kraken's Wheel (pays back 88%). Stakes 5–100◈ from the Purse, no tide. Every game pays back less than it takes; losing 100◈ over the year earns *The House Always Wins*.
+
 ## The game loop in the browser (integrated)
 
 `App.tsx` layers the game over the city, all driven by the P2 store (`useBanking`) and the engine's `state.details`:

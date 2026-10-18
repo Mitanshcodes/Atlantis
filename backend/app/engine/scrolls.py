@@ -38,6 +38,8 @@ def check(s: GameState) -> None:
         award(s, ScrollId.READ_THE_LEDGER)
     if f.started_unrated and s.standing is not None and s.standing >= config.CREDIT_BUILT_STANDING:
         award(s, ScrollId.CREDIT_BUILT)
+    if -f.gamble_net >= config.HOUSE_ALWAYS_WINS_LOSS:
+        award(s, ScrollId.HOUSE_ALWAYS_WINS)
 
 
 def assets_value(s: GameState) -> int:

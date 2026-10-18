@@ -217,3 +217,22 @@ def test_moments_name_events_and_scrolls_by_plain_value():
         LogEvent(0, 1, "scroll", {"scroll": ScrollId.RAINY_DAY}),
     ])
     assert [m.get("event") or m.get("scroll") for m in moments] == ["pickpocket", "rainy_day"]
+
+
+def test_gambling_through_the_api_reports_the_result(make):
+    client, app, _ = make()
+    run = start(client, "caretaker")
+    run = ok(client, run, "gamble", target="shells", amount=1000, quantity=2)
+    result = next(m for m in run["state"]["details"]["moments"] if m["kind"] == "gamble")
+    assert result["stake"] == 1000 and result["pick"] == 2 and result["pearl"] in (1, 2, 3)
+    assert run["state"]["details"]["view"]["tavern"]["games_left"] == 2
+    assert act(client, run, "gamble", target="dice", amount=1000).status_code == 422
+    assert_settled(client, app, run)
+
+
+def test_a_market_shock_is_named_in_the_view_and_the_news(make):
+    client, _, _ = make()
+    run = start(client)
+    run = ok(client, run, "end_season")
+    shocks = [m for m in run["state"]["details"]["moments"] if m["kind"] == "market_shock"]
+    assert len(shocks) == 1 and ":" in shocks[0]["text"]

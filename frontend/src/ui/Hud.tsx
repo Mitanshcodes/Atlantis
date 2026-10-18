@@ -1,8 +1,8 @@
 import type { Ledger, Run, State } from "../types";
+import { SCROLL_COUNT } from "./copy";
 import { fmt, viewOf, type GameView as HudView } from "./view";
 
 const SEASONS = ["Spring", "Summer", "Autumn", "Long Dark"] as const;
-const SCROLL_COUNT = 12;
 
 /** The season, the money, the news and the Passage meter, laid over the corners of the city. */
 export function Hud({

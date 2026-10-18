@@ -1,0 +1,113 @@
+{
+  "bank": {
+    "about": "Ione keeps the city's coin safe. Nothing here costs a tide.",
+    "do": [
+      "Purse: the coin you spend. Shops only take Purse coin, and thieves can take it too.",
+      "Vault: savings. They earn a little every season and can't be stolen.",
+      "Leviathan Credit: borrow up to your limit. Pay at least the minimum each season, or pay a fee and lose Standing.",
+      "Standing: how far the Bank trusts you. It rises when you pay on time and keep your card balance low."
+    ],
+    "cost": "Free. Costs no tide."
+  },
+  "market": {
+    "about": "Where the city buys its food and its treasure.",
+    "do": [
+      "Your household eats 20 kelp every season. Kelp is cheapest in Summer and dearest in the Long Dark.",
+      "Your cellar holds up to 60 kelp. Stored kelp spoils a little each season.",
+      "Pearls keep their value as prices rise, but sell for less in the Long Dark panic.",
+      "Every unit you buy nudges the price up, and every unit you sell nudges it down."
+    ],
+    "cost": "Your first trip each season is free. Later trips cost a tide."
+  },
+  "harbor": {
+    "about": "Buy shares in the shipping houses, and buy Passage on the last ship.",
+    "do": [
+      "Every house sends out a voyage each season. Success raises its share price; failure drops it.",
+      "Oro & Daughters is steady and pays a small dividend. Leviathan Line swings big. Deepcoral rarely wins.",
+      "The Tide Index holds a little of every house, so one bad voyage hurts less.",
+      "No ships sail in the Long Dark, and every share falls 20% when it begins. Sell before then if you need the coin.",
+      "Passage is paid from your Purse, and only if you owe nothing to anyone."
+    ],
+    "cost": "Your first visit each season is free. Later visits cost a tide."
+  },
+  "guild_hall": {
+    "about": "Where the city works. Sefa hands out the shifts.",
+    "do": [
+      "A shift pays your wage and spends one tide.",
+      "Every season has six tides. When they run out, the season ends.",
+      "Resting lets a tide pass. Ending the season skips whatever tides are left."
+    ],
+    "cost": "Each shift costs a tide."
+  },
+  "drowned_bell": {
+    "about": "Nerissa's tavern: the best rumors in Atlantis, and a game or two.",
+    "do": [
+      "Spending time here makes tavern rumors likelier. They're right about seven times in ten.",
+      "Nerissa deals three games a season. The odds are chalked on the board.",
+      "Every game pays back a little less than it takes. That's how a tavern stays open."
+    ],
+    "cost": "Free. Costs no tide."
+  },
+  "black_reef": {
+    "about": "Grin lends to anyone, no questions asked.",
+    "do": [
+      "Borrow up to 300◈, even with no Standing at all.",
+      "Grin's fee is half again every season: 100◈ becomes 150◈, then 225◈.",
+      "Nobody boards the last ship owing Grin."
+    ],
+    "cost": "Free to visit. Expensive to leave."
+  },
+  "circle": {
+    "about": "Old Maro's lending circle: neighbours who pool their coin and take turns.",
+    "do": [
+      "Every season each member puts in, and one member takes the whole pot.",
+      "Taking the pot early is a loan from your neighbours. You pay it back a little each season.",
+      "Keep every payment and the circle stands by you when it matters most."
+    ],
+    "cost": "Free. Costs no tide."
+  },
+  "council": {
+    "about": "The Council of Ten rules Atlantis. Herald Kaito speaks for it, and what he says is always true.",
+    "do": [
+      "The Council sets the tithe (40◈ a season) and the Vault's interest rate.",
+      "It can also debase the coin: prices, shares and Passage jump, but the coin you hold stays the same.",
+      "Passage gets dearer every season."
+    ],
+    "cost": "Free."
+  },
+  "maro_questions": [
+    { "when": "debt", "q": "What do you owe, and to whom? Nobody boards that ship owing." },
+    { "when": "card", "q": "Your card grows a little every season. What will it cost if you only ever pay the minimum?" },
+    { "when": "no_savings", "q": "If your roof leaked tomorrow, where would the coin come from?" },
+    { "when": "behind", "q": "Passage climbs every season. Is your coin climbing faster than the price?" },
+    { "when": "idle_coin", "q": "That coin in your Purse: is it working for you, or just waiting to be stolen?" },
+    { "when": "low_kelp", "q": "Kelp is dearest in the Long Dark. How full will your cellar be when the dark comes?" },
+    { "when": "passage", "q": "You have your Passage. Who else in this city could use a little help?" },
+    { "when": "always", "q": "When the tide turns against you, who would you turn to?" }
+  ],
+  "tavern": {
+    "games": {
+      "shells": {
+        "name": "Nerissa's Shells",
+        "rules": "Three shells, one pearl. Pick the shell with the pearl and win back 2.5× your stake.",
+        "odds": "Wins 1 time in 3 · pays 2.5×"
+      },
+      "wheel": {
+        "name": "The Kraken's Wheel",
+        "rules": "Spin the wheel. Most spins land on the kraken and take your stake; a few pay double, four times, or ten times.",
+        "odds": "Loses 71% · 2× 20% · 4× 7% · 10× 2%"
+      }
+    },
+    "win": [
+      "Nerissa slides your winnings across the bar. \"Don't spend it all in one tide.\"",
+      "The whole tavern cheers. Nerissa just smiles.",
+      "\"Luck's on your side tonight,\" says Nerissa. \"It usually changes its mind.\""
+    ],
+    "lose": [
+      "Nerissa sweeps your coin into the till. \"The board doesn't lie, love.\"",
+      "The kraken wins again. It usually does.",
+      "\"Every game pays back less than it takes,\" Nerissa reminds you, not unkindly."
+    ],
+    "limit": "Nerissa wipes down the table. \"That's enough games for one season.\""
+  }
+}

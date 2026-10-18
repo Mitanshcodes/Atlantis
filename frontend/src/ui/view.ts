@@ -37,6 +37,9 @@ export interface GameView {
   storm_level?: number;
   offers?: Array<{ kind: string; amount: number }>;
   scrolls?: string[];
+  /** This season's market shock, once it has hit (an id in content/events.json "shocks"). */
+  shock?: string | null;
+  tavern?: { games_left: number; min: number; max: number; net: number };
   net_worth?: number;
   ending?: string | null;
   miss_cause?: string | null;
@@ -50,6 +53,14 @@ export interface Moment {
   season?: string;
   ending?: string;
   source?: string;
+  shock?: string;
+  /** A game at the Drowned Bell: stake and winnings in hundredths. */
+  game?: string;
+  stake?: number;
+  won?: number;
+  pick?: number;
+  pearl?: number;
+  multiple?: number;
 }
 
 export const viewOf = (state: State): GameView => (state.details.view ?? {}) as GameView;

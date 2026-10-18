@@ -1,6 +1,7 @@
 import type { Building } from "../../game/buildings";
 import { BankRoom } from "./BankRoom";
-import { CircleRoom, CouncilRoom, GuildRoom, ReefRoom, TavernRoom } from "./CityRooms";
+import { CircleRoom, CouncilRoom, GuildRoom, ReefRoom } from "./CityRooms";
+import { TavernRoom } from "./TavernRoom";
 import { Room, view, type RoomProps } from "./kit";
 import { ExchangeRoom, MarketRoom } from "./TradeRooms";
 

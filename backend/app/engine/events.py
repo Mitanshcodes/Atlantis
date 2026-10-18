@@ -44,6 +44,39 @@ def schedule(s: GameState, r: random.Random) -> None:
     count = min(weighted_choice(r, config.EVENTS_PER_SEASON), s.tides_total)
     s.event_tides = sorted(r.sample(range(1, s.tides_total + 1), count))
     s.fired_events = []
+    s.shock = None
+    s.shock_tide = r.randint(1, s.tides_total) if shock_candidates(s) else None
+
+
+# --- Market shocks: one unexpected market event a season -------------------------------------
+
+
+def shock_candidates(s: GameState) -> Dict[str, float]:
+    """Shocks that can happen this season and haven't yet this year, by weight."""
+    return {
+        name: spec.weight
+        for name, spec in config.MARKET_SHOCKS.items()
+        if name not in s.flags.shocks_seen and s.season_name in spec.seasons
+    }
+
+
+def fire_shock(s: GameState, r: random.Random) -> None:
+    candidates = shock_candidates(s)
+    if not candidates:
+        return
+    name = weighted_choice(r, candidates)
+    spec = config.MARKET_SHOCKS[name]
+    for good, mult in (spec.goods or {}).items():
+        if good in s.goods:
+            s.goods[good].event_mult *= mult
+    for house, mult in (spec.houses or {}).items():
+        if house in s.houses:
+            s.houses[house].price = max(config.MIN_SHARE_PRICE, s.houses[house].price * mult)
+    for _ in range(spec.storm):
+        exchange.raise_storm(s)
+    s.flags.shocks_seen.append(name)
+    s.shock = name
+    s.record("market_shock", shock=name)
 
 
 def announce(s: GameState) -> None:
@@ -107,6 +140,9 @@ def weights(s: GameState) -> Dict[EventKind, float]:
 
 
 def fire_due(s: GameState) -> None:
+    if s.shock_tide is not None and s.shock_tide <= s.tide:
+        s.shock_tide = None
+        fire_shock(s, rng(s))
     while s.event_tides and s.event_tides[0] <= s.tide:
         s.event_tides.pop(0)
         r = rng(s)

@@ -17,7 +17,10 @@ The money itself always moves.
 
 from __future__ import annotations
 
+import json
 from enum import Enum
+from functools import lru_cache
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 from app import config
@@ -33,6 +36,7 @@ from app.engine.actions import (
     EndSeason,
     EndYear,
     ExchangeVisit,
+    Gamble,
     InvestPearlExchange,
     MarketTrip,
     OpenSecuredCard,
@@ -51,6 +55,7 @@ from app.engine.actions import (
 )
 from app.engine.serialize import from_data, to_data
 from app.engine.state import (
+    SEASONS,
     Account,
     BillKind,
     BusinessKind,
@@ -108,6 +113,15 @@ HOUSE_NAMES = {
 
 def minor(coins: float) -> int:
     return int(round(coins * MINOR))
+
+
+CONTENT_DIR = Path(__file__).resolve().parents[1] / "content"
+
+
+@lru_cache(maxsize=None)
+def content(name: str) -> Dict[str, Any]:
+    """The writing in app/content/<name>.json (shared with the frontend)."""
+    return json.loads((CONTENT_DIR / f"{name}.json").read_text(encoding="utf-8"))
 
 
 # --- The P2 contract ------------------------------------------------------------------------------
@@ -222,6 +236,9 @@ def translate(action: Action, s: GameState) -> List[object]:
         return [InvestPearlExchange(_coins(action.amount))]
     if k == "visit":
         return [Visit(_enum(Place, action.target, "place"))]
+    if k == "gamble":
+        # The stake is ``amount``; the shell game's pick (1-3) travels as ``quantity``.
+        return [Gamble(action.target or "", _coins(action.amount), action.quantity)]
     if k == "buy_business":
         return [BuyBusiness(_enum(BusinessKind, action.target, "business"))]
     trades = {"buy_kelp": (Good.KELP, 1), "sell_kelp": (Good.KELP, -1), "buy_pearls": (Good.PEARLS, 1), "sell_pearls": (Good.PEARLS, -1)}
@@ -277,6 +294,8 @@ def available_actions(s: GameState) -> List[str]:
         out.append("dispute_charge")
     if any(o.kind == EventKind.PEARL_EXCHANGE for o in s.offers):
         out.append("invest_pearl_exchange")
+    if s.flags.games_this_season < config.GAMES_PER_SEASON and s.purse >= config.GAMBLE_MIN:
+        out.append("gamble")
     if s.passage_paid is None:
         out.append("buy_passage")
     if config.FEATURE_BUSINESSES and s.phase == Phase.PLAYING:
@@ -371,6 +390,13 @@ def view(s: GameState) -> Dict[str, Any]:
         "storm_level": s.storm_level,
         "offers": [{"kind": o.kind.value, "amount": minor(o.amount)} for o in s.offers],
         "scrolls": [x.value for x in s.scrolls],
+        "shock": s.shock,
+        "tavern": {
+            "games_left": max(0, config.GAMES_PER_SEASON - s.flags.games_this_season),
+            "min": minor(config.GAMBLE_MIN),
+            "max": minor(config.GAMBLE_MAX),
+            "net": minor(s.flags.gamble_net),
+        },
         "net_worth": minor(scrolls.net_worth(s)),
         "ending": s.ending.value if s.ending else None,
         "miss_cause": s.miss_cause.value if s.miss_cause else None,
@@ -501,15 +527,6 @@ def _entry_effects(e: LedgerEntry, s: GameState, add, opening: bool, bills_on: b
 # --- Events ---------------------------------------------------------------------------------------
 
 
-# What the city's voices say when a scenario or the debasement is coming (shown as news).
-CLUES = {
-    "debasement.orichalcum": "Nerissa hears the Council's vaults are short on orichalcum, and they'll thin the coin before long.",
-    "scenario.silk_boom": "Herald Kaito announces the surface kingdoms are ordering cloth by the shipload.",
-    "scenario.kelp_blight": "Nerissa says the kelp farmers are whispering about rot in the beds.",
-    "scenario.stormy_seas": "Captain Oro warns the autumn currents feel wrong, and he'd not trust a hull to them.",
-}
-
-
 def _fmt_rate(rate: float) -> str:
     return f"{rate * 100:.0f}%"
 
@@ -573,7 +590,15 @@ def describe_event(e: LogEvent) -> Optional[str]:
     if k == "debasement":
         return "The Council debased the coin. Prices, Passage and shares rose; coin did not."
     if k == "clue":
-        return CLUES.get(d["key"], f"A rumor from {d['source'].replace('_', ' ').title()}.")
+        return content("scenarios")["clues"].get(d["key"], f"A rumor from {d['source'].replace('_', ' ').title()}.")
+    if k == "market_shock":
+        words = content("events")["shocks"].get(d["shock"], {})
+        return f"{words.get('title', 'Market news')}: {words.get('means', '')}".strip()
+    if k == "gamble":
+        name = content("buildings")["tavern"]["games"].get(d["game"], {}).get("name", "a game")
+        if d["won"]:
+            return f"Won {d['won']}◈ on {name} with a {d['stake']}◈ stake."
+        return f"Lost {d['stake']}◈ on {name}."
     if k == "panic":
         return "Panic swept the Exchange as the Long Dark began."
     if k == "rumor_corrected":
@@ -619,7 +644,7 @@ def _value(x: Any) -> Any:
 
 
 MOMENT_KINDS = ("event", "scroll", "season_end", "debasement", "clue", "passage_bought", "final_call",
-                "ending", "fraud_lost", "scam_revealed", "card_frozen")
+                "ending", "fraud_lost", "scam_revealed", "card_frozen", "market_shock", "gamble")
 
 
 def moments_of(log: Sequence[LogEvent]) -> List[Dict[str, Any]]:
@@ -629,16 +654,22 @@ def moments_of(log: Sequence[LogEvent]) -> List[Dict[str, Any]]:
     for e in log:
         if e.kind not in MOMENT_KINDS:
             continue
-        moment: Dict[str, Any] = {"kind": e.kind, "text": describe_event(e) or ""}
+        # The season it happened in: cards are often shown after the season has turned.
+        moment: Dict[str, Any] = {"kind": e.kind, "text": describe_event(e) or "", "season": SEASON_NAMES[SEASONS[e.season]]}
         if e.kind == "event":
             moment["event"] = _value(e.data.get("event"))
         elif e.kind == "scroll":
             moment["scroll"] = _value(e.data["scroll"])
-        elif e.kind == "season_end":
-            moment["season"] = SEASON_NAMES[Season(e.data["season"])]
         elif e.kind == "ending":
             moment["ending"] = _value(e.data["ending"])
         elif e.kind == "clue":
             moment["source"] = _value(e.data["source"])
+        elif e.kind == "market_shock":
+            moment["shock"] = e.data["shock"]
+        elif e.kind == "gamble":
+            moment.update(game=e.data["game"], stake=minor(e.data["stake"]), won=minor(e.data["won"]))
+            for key in ("pick", "pearl", "multiple"):
+                if key in e.data:
+                    moment[key] = e.data[key]
         out.append(moment)
     return out

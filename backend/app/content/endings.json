@@ -1,0 +1,29 @@
+{
+  "endings": {
+    "escaped_with_wealth": {
+      "title": "Escaped with Wealth",
+      "line": "{name} boards the last ship with a full purse, and watches Atlantis slip beneath the waves."
+    },
+    "escaped_with_nothing": {
+      "title": "Escaped with Nothing",
+      "line": "{name} boards the last ship with little but a Passage. Alive, and that is everything."
+    },
+    "rescued_by_circle": {
+      "title": "Rescued by the Circle",
+      "line": "{name} came up short, but Old Maro's circle covered the gap. Faith kept is faith returned."
+    },
+    "missed_the_ship": {
+      "title": "Missed the Last Ship",
+      "line": "The last ship sails without {name}. Atlantis goes dark."
+    }
+  },
+  "mirror": {
+    "escaped_with_wealth": "In real life, this is an emergency fund plus a diversified portfolio. Cash for the unexpected, assets that grow faster than inflation, and no high-interest debt.",
+    "escaped_with_nothing": "In real life, this is about liquidity and timing. Wealth only helps if you can turn it into cash when you need it, and prices for the things you need rise over time.",
+    "rescued_by_circle": "In real life, this is a ROSCA (rotating savings and credit association), one of the oldest forms of community finance. A loan from friends is still a loan; keeping your payments is what keeps the safety net there.",
+    "debt": "In real life, this is compound interest working against you. Credit card APRs around 30% and payday lenders double what you owe fast. Pay balances in full and avoid cash advances.",
+    "illiquid": "In real life, this is a liquidity crisis. Assets aren't cash: in a panic they sell at a discount, or can't be sold in time. Keep enough in cash for what you know is coming.",
+    "scam": "In real life, this is investment fraud. A “guaranteed” high return is the oldest sign of a scam. If it can't lose, it isn't real.",
+    "no_savings": "In real life, this is inflation outrunning cash. Wages alone rarely keep up with rising prices; saving early and investing steadily is how ordinary incomes get ahead."
+  }
+}

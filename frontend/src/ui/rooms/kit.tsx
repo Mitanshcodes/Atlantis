@@ -8,6 +8,7 @@ import { useEffect, useId, useState, type ReactNode } from "react";
 import type { Building } from "../../game/buildings";
 import type { ActionInput } from "../../store";
 import type { Order, Run } from "../../types";
+import { BUILDING_INFO, SHOCKS } from "../copy";
 import { coins, fmt, toMinor, viewOf, type GameView } from "../view";
 
 export interface RoomProps {
@@ -51,11 +52,43 @@ export function Room({
             Leave
           </button>
         </header>
-        <p className="room__greeting">“{building.greeting}”</p>
-        {tide && <p className="room__tide">{tide}</p>}
-        <div className="room__body">{children}</div>
+        <div className="room__body">
+          <Intro building={building} tide={tide} />
+          {children}
+        </div>
       </section>
     </div>
+  );
+}
+
+/** What this place is, what you can do here, and what it costs: plain words, no riddles. */
+function Intro({ building, tide }: { building: Building; tide?: ReactNode }) {
+  const info = BUILDING_INFO[building.id];
+  if (!info) return null;
+  return (
+    <section className="room-intro">
+      <p className="room-intro__about">{info.about}</p>
+      <ul className="room-intro__list">
+        {info.do.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+      <p className="room-intro__cost">{tide ?? info.cost}</p>
+    </section>
+  );
+}
+
+/** This season's market shock, if it has hit: what happened and what it means for prices. */
+export function ShockBanner({ run }: { run: Run }) {
+  const id = view(run).shock;
+  const words = id ? SHOCKS[id] : undefined;
+  if (!words) return null;
+  return (
+    <aside className="shock-banner" role="note">
+      <p className="shock-banner__eyebrow">Market news this season</p>
+      <p className="shock-banner__title">{words.title}</p>
+      <p className="shock-banner__means">{words.means}</p>
+    </aside>
   );
 }
 

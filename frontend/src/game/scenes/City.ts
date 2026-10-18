@@ -65,6 +65,12 @@ export class City extends Phaser.Scene {
   private plates = new Map<BuildingId, { box: Phaser.GameObjects.Graphics; text: Phaser.GameObjects.Text }>();
   private press?: { x: number; y: number; scrollX: number; scrollY: number };
   private dragging = false;
+  /**
+   * Whether the current click began on the city. Phaser hears every mouse release on the page,
+   * so a click on a React button (Leave, Skip story) would otherwise also hop the player to
+   * whatever building is under the pointer.
+   */
+  private pressedHere = false;
   private fitDepthFade: () => void = () => undefined;
   private updaters: Array<(time: number, delta: number) => void> = [];
 
@@ -171,7 +177,7 @@ export class City extends Phaser.Scene {
         sprite.on(Phaser.Input.Events.POINTER_OVER, () => this.hover(building.id));
         sprite.on(Phaser.Input.Events.POINTER_OUT, () => this.hover(null));
         sprite.on(Phaser.Input.Events.POINTER_UP, () => {
-          if (!this.dragging) this.goTo(building);
+          if (this.pressedHere && !this.dragging) this.goTo(building);
         });
         return sprite;
       });
@@ -327,7 +333,7 @@ export class City extends Phaser.Scene {
     NPCS.forEach((npc, i) => {
       const walker = new NpcWalker(this, npc, 101 + i);
       walker.sprite.on(Phaser.Input.Events.POINTER_UP, () => {
-        if (!this.dragging) this.approach(walker);
+        if (this.pressedHere && !this.dragging) this.approach(walker);
       });
       this.walkers.set(npc.id, walker);
     });
@@ -475,6 +481,7 @@ export class City extends Phaser.Scene {
     this.input.on(Phaser.Input.Events.POINTER_DOWN, (p: Phaser.Input.Pointer) => {
       this.press = { x: p.x, y: p.y, scrollX: cam.scrollX, scrollY: cam.scrollY };
       this.dragging = false;
+      this.pressedHere = true;
     });
     this.input.on(Phaser.Input.Events.POINTER_MOVE, (p: Phaser.Input.Pointer) => {
       if (!p.isDown || !this.press) return;
@@ -492,11 +499,15 @@ export class City extends Phaser.Scene {
       Phaser.Input.Events.POINTER_UP,
       (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
         const wasDrag = this.dragging;
+        const pressedHere = this.pressedHere;
         this.press = undefined;
         this.input.setDefaultCursor(CURSORS.default);
-        // Let building handlers see the drag flag first, then reset it.
-        this.time.delayedCall(0, () => (this.dragging = false));
-        if (wasDrag || over.length || this.inside || this.talkingTo) return;
+        // Let building handlers see the flags first, then reset them.
+        this.time.delayedCall(0, () => {
+          this.dragging = false;
+          this.pressedHere = false;
+        });
+        if (!pressedHere || wasDrag || over.length || this.inside || this.talkingTo) return;
         this.hopTo({ x: p.worldX, y: p.worldY });
       },
     );

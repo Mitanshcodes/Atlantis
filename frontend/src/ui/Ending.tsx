@@ -1,7 +1,7 @@
 import type { ActionInput } from "../store";
 import type { Run } from "../types";
 import { loadProfile } from "../game/profile";
-import { ENDINGS, MIRROR } from "./copy";
+import { ENDINGS, MIRROR, SCROLL_COUNT } from "./copy";
 import { ScrollGrid } from "./Scrolls";
 import { fmt, viewOf } from "./view";
 
@@ -84,7 +84,9 @@ export function Ending({ run, onAgain }: { run: Run; onAgain: () => void }) {
           </div>
           <div>
             <dt>Scrolls</dt>
-            <dd className="num">{earned.size} / 12</dd>
+            <dd className="num">
+              {earned.size} / {SCROLL_COUNT}
+            </dd>
           </div>
         </dl>
         <ScrollGrid earned={earned} />

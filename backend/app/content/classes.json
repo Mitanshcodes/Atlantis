@@ -1,0 +1,59 @@
+[
+  {
+    "id": "newcomer",
+    "title": "The Newcomer",
+    "name": "Newcomer",
+    "job": "Dock trader · 60◈ a shift",
+    "coin": 500,
+    "hard": "No history with the Bank, so no card or loans at first.",
+    "edge": "Hears the surface ports. Rumors are right 9 times in 10.",
+    "standing": "Unrated",
+    "pay": "60◈",
+    "scene": "v_newcomer",
+    "chelo": "New to the city? The Bank won't lend to a stranger. A secured card is how you become someone it knows.",
+    "story": "You came down from the surface ports with a trader's ear and 500◈. The Bank has never heard of you, so it won't lend you a thing until you give it a reason to."
+  },
+  {
+    "id": "first_of_their_line",
+    "title": "First of Their Line",
+    "name": "First of Their Line",
+    "job": "Guild apprentice · 50◈ a shift",
+    "coin": 800,
+    "coinNote": "500◈ of it owed to the guild",
+    "hard": "No family savings, and a guild loan to repay.",
+    "edge": "Pay rises 10◈ each season. Ione and Sefa explain more.",
+    "standing": "580",
+    "pay": "50◈",
+    "scene": "v_first",
+    "chelo": "You hold 800◈, but 500◈ of it isn't yours. Passage won't sell to anyone who still owes the guild.",
+    "story": "No one in your family has ever kept a Vault. You're the first to apprentice at the Guild Hall: 50◈ a shift, and 10◈ more each season. You start with 800◈, but 500◈ of it is owed to the guild."
+  },
+  {
+    "id": "caretaker",
+    "title": "The Caretaker",
+    "name": "Caretaker",
+    "job": "Kelp farmer · 55◈ a shift",
+    "coin": 700,
+    "hard": "Care takes 2 of 6 tides in Summer and the Long Dark, plus 60◈ a season.",
+    "edge": "Old Maro's circle hands you its first 400◈ pot.",
+    "standing": "620",
+    "pay": "55◈",
+    "scene": "v_caretaker",
+    "chelo": "The circle's pot is trust, not a gift. Pay it back a hundred a season and they'll stand by you to the end.",
+    "story": "You farm kelp and care for someone who needs you, and that costs tides and coin every season. But Old Maro's lending circle has handed you its first 400◈ pot."
+  },
+  {
+    "id": "tidewalker",
+    "title": "The Tidewalker",
+    "name": "Tidewalker",
+    "job": "Salvage diver · 0 to 120◈",
+    "coin": 500,
+    "hard": "Pay swings every tide. No Vault until your Standing reaches 550.",
+    "edge": "Lucky salvage finds you three times as often.",
+    "standing": "540",
+    "pay": "0–120◈",
+    "scene": "v_tidewalker",
+    "chelo": "Some dives come up empty. Keep coin aside for the lean tides, and keep clear of Grin.",
+    "story": "You dive the wrecks off the outer ring. Some tides you bring up 120◈, some tides nothing at all. The Bank won't give you a Vault yet, and Grin knows your street."
+  }
+]

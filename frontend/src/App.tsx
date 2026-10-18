@@ -29,7 +29,17 @@ interface Hover {
 type Beat = { type: "card"; moment: Moment } | { type: "chronicle"; season: string };
 
 /** Moments worth stopping the player for. Season ends open the Chronicle instead. */
-const CARD_KINDS = new Set(["event", "scroll", "debasement", "clue", "passage_bought", "fraud_lost", "scam_revealed", "card_frozen"]);
+const CARD_KINDS = new Set([
+  "event",
+  "market_shock",
+  "scroll",
+  "debasement",
+  "clue",
+  "passage_bought",
+  "fraud_lost",
+  "scam_revealed",
+  "card_frozen",
+]);
 
 /** Buildings that are engine Places: walking in is a free Visit, which the event deck notices. */
 const PLACES: Partial<Record<BuildingId, string>> = {

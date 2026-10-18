@@ -109,6 +109,7 @@ class ScrollId(str, Enum):
     CREDIT_BUILT = "credit_built"
     GOOD_DEBT = "good_debt"
     CIRCLE_OF_TRUST = "circle_of_trust"
+    HOUSE_ALWAYS_WINS = "house_always_wins"
 
 
 class Ending(str, Enum):
@@ -282,6 +283,10 @@ class Flags:
     business_result: Optional[int] = None  # profit + sale price - cost, once sold
     business_loan_funded: bool = False
     visited: List[Place] = field(default_factory=list)  # this season
+    shocks_seen: List[str] = field(default_factory=list)  # market shocks already used this run
+    games_this_season: int = 0  # Drowned Bell games played this season
+    games_played: int = 0
+    gamble_net: int = 0  # coin won minus coin staked at the Drowned Bell, all year
 
 
 @dataclass
@@ -320,6 +325,8 @@ class GameState:
     offers: List[Offer] = field(default_factory=list)
     event_tides: List[int] = field(default_factory=list)  # hidden; tides after which events fire
     fired_events: List[EventKind] = field(default_factory=list)  # this season
+    shock_tide: Optional[int] = None  # hidden; the tide after which this season's market shock hits
+    shock: Optional[str] = None  # this season's market shock, once it has hit
     free_visits_used: List[Place] = field(default_factory=list)  # this season
 
     passage_paid: Optional[int] = None
@@ -363,6 +370,7 @@ HIDDEN_FIELDS = (
     "debasement_season",
     "rng_step",
     "event_tides",
+    "shock_tide",
     "houses[*].voyage_outcome",
     "houses[*].rumor.true",
 )
