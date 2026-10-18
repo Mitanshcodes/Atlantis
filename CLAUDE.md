@@ -412,7 +412,7 @@ cd frontend && npm install && npm run dev                      # proxies /api to
 - **Frontend → Vercel**, project root `frontend/` (`frontend/vercel.json`). Vercel serves the Vite build and forwards `/api/*` to the backend, so the browser never needs CORS.
 - **Backend → Render**, from `render.yaml` (free web service, root `backend/`, `uvicorn app.main:app`). Secrets (`NESSIE_API_KEY`, `OPENAI_API_KEY`) are set in Render's dashboard. Vercel can't run it: games live in SQLite and Nessie sync runs on a background thread, and serverless keeps neither.
 - **Free Render limits:** it sleeps after 15 minutes idle (the first request then takes ~30s; open the site a minute before a demo) and its disk is wiped on every redeploy or restart, so saved games don't survive one.
-- If the Render URL isn't `atlantis-api.onrender.com`, change the rewrite in `frontend/vercel.json`.
+- If the Render URL isn't `atlantis-api-evgy.onrender.com`, change the rewrite in `frontend/vercel.json`.
 
 ## Content (all the game's writing)
 
