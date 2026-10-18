@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { loadProfile } from "../game/profile";
 import type { Run } from "../types";
 import { fmt, viewOf } from "./view";
 
@@ -27,7 +28,7 @@ export function Chronicle({ run, season, onDone }: Props) {
   return (
     <div className="card-backdrop">
       <section className="panel chronicle" role="dialog" aria-labelledby="chronicle-title">
-        <p className="event-card__eyebrow">The Chronicle</p>
+        <p className="event-card__eyebrow">The Chronicle{loadProfile()?.name ? ` of ${loadProfile()?.name}` : ""}</p>
         <h2 id="chronicle-title" className="chronicle__title">
           The {season}
         </h2>

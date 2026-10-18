@@ -5,6 +5,7 @@
 
 import Phaser from "phaser";
 import type { BuildingId } from "./buildings";
+import type { Profile } from "./profile";
 
 export interface GameEvents {
   /** The city scene finished loading and is on screen. */
@@ -20,6 +21,8 @@ export interface GameEvents {
   "building-left": [id: BuildingId];
   /** React sends the player to a building (an event card's "go there"); they hop over and go in. */
   "go-to-building": [id: BuildingId];
+  /** The player chose (or changed) their name and look; the city redraws their sprite. */
+  "profile-changed": [profile: Profile];
 }
 
 type Handler<K extends keyof GameEvents> = (...args: GameEvents[K]) => void;

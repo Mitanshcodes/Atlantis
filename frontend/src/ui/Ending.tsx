@@ -1,5 +1,6 @@
 import type { ActionInput } from "../store";
 import type { Run } from "../types";
+import { loadProfile } from "../game/profile";
 import { ENDINGS, MIRROR } from "./copy";
 import { ScrollGrid } from "./Scrolls";
 import { fmt, viewOf } from "./view";
@@ -67,7 +68,7 @@ export function Ending({ run, onAgain }: { run: Run; onAgain: () => void }) {
       <div className="screen__inner ending">
         <p className="title__eyebrow">The year is over</p>
         <h1 className={`ending__title ${escaped ? "is-escaped" : "is-lost"}`}>{ending.title}</h1>
-        <p className="title__line">{ending.line}</p>
+        <p className="title__line">{ending.line.replace("{name}", loadProfile()?.name || "The traveller")}</p>
         <section className="panel mirror">
           <p className="hud__eyebrow">The Modern Mirror</p>
           <p className="mirror__text">{MIRROR[mirrorKey]}</p>

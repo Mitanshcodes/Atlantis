@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { AVATAR, LOOKS } from "../profile";
 import { CRITTERS, FRAMES, GENERATED, PLAYER, SHEETS, type Rect } from "../assets";
 import { CRITTER_ART } from "../critterArt";
 import { drawGlints, drawGround } from "../ground";
@@ -13,6 +14,10 @@ export class Boot extends Phaser.Scene {
   preload(): void {
     for (const [key, url] of Object.entries(SHEETS)) this.load.image(key, url);
     this.load.spritesheet(PLAYER.idle.key, PLAYER.idle.url, { frameWidth: PLAYER.frame, frameHeight: PLAYER.frame });
+    // The opening's avatars, so the player looks in the city as they chose.
+    for (const look of LOOKS) {
+      this.load.spritesheet(AVATAR.key(look), AVATAR.url(look), { frameWidth: AVATAR.w, frameHeight: AVATAR.h });
+    }
   }
 
   create(): void {

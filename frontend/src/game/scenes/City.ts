@@ -13,6 +13,7 @@ import {
 } from "../cityMap";
 import { CURSORS } from "../cursors";
 import { EventBus } from "../EventBus";
+import { AVATAR, avatarFrame, loadProfile, type AvatarFacing, type Profile } from "../profile";
 import { addCritters } from "../fx/critters";
 import {
   DEPTH,
@@ -44,6 +45,8 @@ export class City extends Phaser.Scene {
   private player!: Phaser.GameObjects.Container;
   private playerSprite!: Phaser.GameObjects.Sprite;
   private facing: Facing = "down";
+  /** The look chosen in the opening; without one, the pack's hooded walker. */
+  private profile: Profile | null = loadProfile();
   private hopping = false;
   /** A building asked for mid-hop (e.g. "go to the Bank" while popping out of a door). */
   private queued?: Building;
@@ -103,9 +106,14 @@ export class City extends Phaser.Scene {
 
     const offLeft = EventBus.on("building-left", (id) => this.leaveBuilding(id));
     const offGo = EventBus.on("go-to-building", (id) => this.goTo(BUILDINGS_BY_ID[id]));
+    const offProfile = EventBus.on("profile-changed", (profile) => {
+      this.profile = profile;
+      this.applyLook();
+    });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       offLeft();
       offGo();
+      offProfile();
     });
     EventBus.emit("city-ready");
   }
@@ -232,9 +240,9 @@ export class City extends Phaser.Scene {
 
   private createPlayer(): void {
     // The sheet's frames carry their own shadow, so the foot is a few pixels above the bottom.
-    this.playerSprite = this.add.sprite(0, 0, PLAYER.idle.key).setOrigin(0.5, PLAYER.footY / PLAYER.frame);
-    this.playerSprite.play("idle-down");
+    this.playerSprite = this.add.sprite(0, 0, PLAYER.idle.key);
     this.player = this.add.container(PLAYER_START.x, PLAYER_START.y, [this.playerSprite]);
+    this.applyLook();
 
     // A ring of little bubbles bursting outward, and a few big ones floating up after it.
     this.poof = this.add
@@ -272,7 +280,26 @@ export class City extends Phaser.Scene {
     if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
       this.facing = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : dy < 0 ? "up" : "down";
     }
-    this.playerSprite.play(`idle-${this.facing}`, true);
+    this.showFacing();
+  }
+
+  /** Dress the player as their profile says (or as the hooded walker), facing the current way. */
+  private applyLook(): void {
+    if (this.profile) {
+      this.playerSprite.stop().setTexture(AVATAR.key(this.profile.look)).setOrigin(0.5, (AVATAR.footY + 1) / AVATAR.h);
+    } else {
+      this.playerSprite.setTexture(PLAYER.idle.key).setOrigin(0.5, PLAYER.footY / PLAYER.frame);
+    }
+    this.showFacing();
+  }
+
+  private showFacing(): void {
+    if (!this.profile) {
+      this.playerSprite.play(`idle-${this.facing}`, true);
+      return;
+    }
+    const facing: Record<Facing, AvatarFacing> = { down: "front", left: "left", up: "back", right: "right" };
+    this.playerSprite.setFrame(avatarFrame(this.profile.robe, facing[this.facing]));
   }
 
   private goTo(building: Building): void {

@@ -9,45 +9,87 @@ import type { ClassId } from "../types";
 
 export interface ClassCopy {
   id: ClassId;
+  /** "The Newcomer" on the card; "Newcomer" in a sentence. */
+  title: string;
   name: string;
   job: string;
-  start: string;
-  barrier: string;
-  strength: string;
+  /** Starting coin, whole coins. */
+  coin: number;
+  /** A note beside the coin (the First of Their Line's debt). */
+  coinNote?: string;
+  hard: string;
+  edge: string;
+  standing: string;
+  pay: string;
+  /** The opening's workplace scene: assets/opening/scenes/<scene>.png. */
+  scene: string;
+  /** What Chelo says when you pick this place. */
+  chelo: string;
+  /** The story scroll's first page. */
+  story: string;
 }
 
 export const CLASSES: ClassCopy[] = [
   {
     id: "newcomer",
+    title: "The Newcomer",
     name: "Newcomer",
     job: "Dock trader · 60◈ a shift",
-    start: "500◈ in your Purse",
-    barrier: "Unrated. No Standing yet, so no Leviathan card or loans until you open a secured card.",
-    strength: "You know the surface ports: tavern rumors reach you right nine times in ten.",
+    coin: 500,
+    hard: "No history with the Bank, so no card or loans at first.",
+    edge: "Hears the surface ports. Rumors are right 9 times in 10.",
+    standing: "Unrated",
+    pay: "60◈",
+    scene: "v_newcomer",
+    chelo: "New to the city? The Bank won't lend to a stranger. A secured card is how you become someone it knows.",
+    story:
+      "You came down from the surface ports with a trader's ear and 500◈. The Bank has never heard of you, so it won't lend you a thing until you give it a reason to.",
   },
   {
     id: "first_of_their_line",
+    title: "First of Their Line",
     name: "First of Their Line",
-    job: "Guild apprentice · 50◈ a shift, +10◈ each season",
-    start: "800◈, but 500◈ of it is owed to the guild",
-    barrier: "No family savings behind you, and a guild loan to clear before Passage.",
-    strength: "Your pay grows every season, and Ione and Sefa explain more of every choice.",
+    job: "Guild apprentice · 50◈ a shift",
+    coin: 800,
+    coinNote: "500◈ of it owed to the guild",
+    hard: "No family savings, and a guild loan to repay.",
+    edge: "Pay rises 10◈ each season. Ione and Sefa explain more.",
+    standing: "580",
+    pay: "50◈",
+    scene: "v_first",
+    chelo: "You hold 800◈, but 500◈ of it isn't yours. Passage won't sell to anyone who still owes the guild.",
+    story:
+      "No one in your family has ever kept a Vault. You're the first to apprentice at the Guild Hall: 50◈ a shift, and 10◈ more each season. You start with 800◈, but 500◈ of it is owed to the guild.",
   },
   {
     id: "caretaker",
+    title: "The Caretaker",
     name: "Caretaker",
     job: "Kelp farmer · 55◈ a shift",
-    start: "700◈, plus the lending circle's first 400◈ pot",
-    barrier: "Care takes two tides in Summer and the Long Dark, and a 60◈ care bill every season.",
-    strength: "Old Maro's lending circle gives you the first pot, and stands by you if you stand by it.",
+    coin: 700,
+    hard: "Care takes 2 of 6 tides in Summer and the Long Dark, plus 60◈ a season.",
+    edge: "Old Maro's circle hands you its first 400◈ pot.",
+    standing: "620",
+    pay: "55◈",
+    scene: "v_caretaker",
+    chelo: "The circle's pot is trust, not a gift. Pay it back a hundred a season and they'll stand by you to the end.",
+    story:
+      "You farm kelp and care for someone who needs you, and that costs tides and coin every season. But Old Maro's lending circle has handed you its first 400◈ pot.",
   },
   {
     id: "tidewalker",
+    title: "The Tidewalker",
     name: "Tidewalker",
-    job: "Salvage diver · 0–120◈ a shift",
-    start: "500◈ in your Purse",
-    barrier: "Pay swings with every dive, no Vault until Standing 550, and Grin knows your street.",
-    strength: "Lucky salvage finds you three times as often.",
+    job: "Salvage diver · 0 to 120◈",
+    coin: 500,
+    hard: "Pay swings every tide. No Vault until your Standing reaches 550.",
+    edge: "Lucky salvage finds you three times as often.",
+    standing: "540",
+    pay: "0–120◈",
+    scene: "v_tidewalker",
+    chelo: "Some dives come up empty. Keep coin aside for the lean tides, and keep clear of Grin.",
+    story:
+      "You dive the wrecks off the outer ring. Some tides you bring up 120◈, some tides nothing at all. The Bank won't give you a Vault yet, and Grin knows your street.",
   },
 ];
 
@@ -94,19 +136,19 @@ export const SCROLLS: Record<string, { name: string; how: string }> = {
 export const ENDINGS: Record<string, { title: string; line: string }> = {
   escaped_with_wealth: {
     title: "Escaped with Wealth",
-    line: "You board the last ship with a full purse, and watch Atlantis slip beneath the waves.",
+    line: "{name} boards the last ship with a full purse, and watches Atlantis slip beneath the waves.",
   },
   escaped_with_nothing: {
     title: "Escaped with Nothing",
-    line: "You board the last ship with little but your Passage. You are alive, and that is everything.",
+    line: "{name} boards the last ship with little but a Passage. Alive, and that is everything.",
   },
   rescued_by_circle: {
     title: "Rescued by the Circle",
-    line: "You came up short, but Old Maro's circle covered the gap. You kept faith with them; they kept faith with you.",
+    line: "{name} came up short, but Old Maro's circle covered the gap. Faith kept is faith returned.",
   },
   missed_the_ship: {
     title: "Missed the Last Ship",
-    line: "The last ship sails without you. Atlantis goes dark.",
+    line: "The last ship sails without {name}. Atlantis goes dark.",
   },
 };
 

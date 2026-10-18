@@ -5,13 +5,13 @@ import { PhaserGame } from "./game/PhaserGame";
 import { useBanking } from "./store";
 import { BuildingCard } from "./ui/BuildingCard";
 import { Chronicle } from "./ui/Chronicle";
-import { ClassSelect } from "./ui/ClassSelect";
 import { DEMO_RUN } from "./ui/demoRun";
 import { Dialogue } from "./ui/Dialogue";
 import { LedgerDrawer } from "./ui/Drawers";
 import { Ending, FinalCall } from "./ui/Ending";
 import { EventCard } from "./ui/EventCard";
 import { Hud } from "./ui/Hud";
+import { Opening, type OpeningStep } from "./ui/opening/Opening";
 import { BuildingRoom } from "./ui/rooms";
 import { ScrollsDrawer } from "./ui/Scrolls";
 import { momentsOf, viewOf, type Moment } from "./ui/view";
@@ -37,6 +37,8 @@ export function App() {
   const [hover, setHover] = useState<Hover | null>(null);
   const [beats, setBeats] = useState<Beat[]>([]);
   const [drawer, setDrawer] = useState<"ledger" | "scrolls" | null>(null);
+  // Every visit opens on the title; Continue resumes the saved journey.
+  const [opening, setOpening] = useState<OpeningStep | null>("title");
   const seen = useRef<{ id: string; version: number } | null>(null);
   // ?demo shows the HUD over a sample run, for layout checks without a backend.
   const demo = useMemo(() => new URLSearchParams(window.location.search).has("demo"), []);
@@ -101,6 +103,7 @@ export function App() {
     setDrawer(null);
     leave();
     bank.abandon();
+    setOpening("who");
   };
 
   const view = shown ? viewOf(shown.state) : undefined;
@@ -145,7 +148,21 @@ export function App() {
       {run && drawer === "ledger" && <LedgerDrawer ledger={bank.ledger} onClose={() => setDrawer(null)} />}
       {run && drawer === "scrolls" && <ScrollsDrawer run={run} onClose={() => setDrawer(null)} />}
 
-      {!run && !demo && <ClassSelect busy={busy} error={bank.error} onBegin={(id) => void bank.create(id)} />}
+      {opening && !demo && (
+        <Opening
+          key={opening}
+          start={opening}
+          saved={run && phase !== "ended" ? `${run.state.season} · tide ${(view?.tide ?? 0) + 1}` : null}
+          busy={busy}
+          error={bank.error}
+          onContinue={() => setOpening(null)}
+          onSail={async (classId) => {
+            const created = await bank.create(classId);
+            if (created) setOpening(null);
+            return created;
+          }}
+        />
+      )}
 
       {bank.pending && (
         <div className="toast toast--info" role="status">

@@ -44,13 +44,16 @@ export function useBanking() {
     try { await fn(); } catch (e) { setError(e instanceof Error ? e.message : 'Request failed'); }
     finally { locked.current = false; setBusy(false); }
   }
-  async function create(classId: ClassId) {
+  /** Start a journey; resolves true once the run exists. */
+  async function create(classId: ClassId): Promise<boolean> {
+    let created = false;
     await guarded(async () => {
       if (pending) throw new Error('Resolve the pending action before opening a new journey');
       const next = await api.create(classId, journeySeed());
       active.current = next.run_id; localStorage.setItem(LAST_RUN, next.run_id);
-      setRun(next); setLedger(null); await refresh(next.run_id);
+      setRun(next); setLedger(null); created = true; await refresh(next.run_id);
     });
+    return created;
   }
   async function deliver(job: Pending) {
     try {
