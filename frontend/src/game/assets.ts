@@ -185,6 +185,7 @@ export const GENERATED = {
   depth: "gen-depth",
   lamp: "gen-lamp",
   kelpBed: "gen-kelp-bed",
+  alert: "gen-alert",
 } as const;
 
 /** Sea creatures drawn in Boot (no pack has any). Each is a small sheet of animation frames. */

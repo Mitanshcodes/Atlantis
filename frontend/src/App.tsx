@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BUILDINGS_BY_ID, type BuildingId } from "./game/buildings";
 import { EventBus } from "./game/EventBus";
+import { NPCS, NPCS_BY_ID, type NpcId } from "./game/npcs";
 import { PhaserGame } from "./game/PhaserGame";
 import { useBanking } from "./store";
 import { BuildingCard } from "./ui/BuildingCard";
@@ -15,6 +16,9 @@ import { Opening, type OpeningStep } from "./ui/opening/Opening";
 import { BuildingRoom } from "./ui/rooms";
 import { ScrollsDrawer } from "./ui/Scrolls";
 import { momentsOf, viewOf, type Moment } from "./ui/view";
+import { NpcDialogue } from "./ui/NpcDialogue";
+import { talk, type Choice } from "./ui/npcTalk";
+import { useHeard } from "./ui/useHeard";
 
 interface Hover {
   id: BuildingId;
@@ -26,15 +30,25 @@ type Beat = { type: "card"; moment: Moment } | { type: "chronicle"; season: stri
 
 /** Moments worth stopping the player for. Season ends open the Chronicle instead. */
 const CARD_KINDS = new Set(["event", "scroll", "debasement", "clue", "passage_bought", "fraud_lost", "scam_revealed", "card_frozen"]);
-/** Entering these tells the engine (the event deck notices who drinks at the tavern or visits Grin). */
-const NOTICED: BuildingId[] = ["drowned_bell", "black_reef"];
 
-/** The city with the game layered over it: class select, rooms, event cards, Chronicle, ending. */
+/** Buildings that are engine Places: walking in is a free Visit, which the event deck notices. */
+const PLACES: Partial<Record<BuildingId, string>> = {
+  bank: "bank",
+  market: "market",
+  harbor: "harbor",
+  drowned_bell: "drowned_bell",
+  black_reef: "black_reef",
+};
+
+/** The city with the game layered over it: opening, rooms, townsfolk, event cards, Chronicle, ending. */
 export function App() {
   const bank = useBanking();
-  const { run, busy, act } = bank;
+  const { run, busy, error, act } = bank;
   const [inside, setInside] = useState<BuildingId | null>(null);
   const [hover, setHover] = useState<Hover | null>(null);
+  const [talkingTo, setTalkingTo] = useState<NpcId | null>(null);
+  const [tried, setTried] = useState(false);
+  const [lastTalked, setLastTalked] = useState<Partial<Record<NpcId, number>>>({});
   const [beats, setBeats] = useState<Beat[]>([]);
   const [drawer, setDrawer] = useState<"ledger" | "scrolls" | null>(null);
   // Every visit opens on the title; Continue resumes the saved journey.
@@ -43,19 +57,44 @@ export function App() {
   // ?demo shows the HUD over a sample run, for layout checks without a backend.
   const demo = useMemo(() => new URLSearchParams(window.location.search).has("demo"), []);
   const shown = run ?? (demo ? DEMO_RUN : null);
+  const heard = useHeard(shown);
+  const version = shown?.state.version ?? 0;
+
+  const talkContext = useCallback(
+    (id: NpcId) => ({ state: shown?.state ?? null, playable: !!run, heard, lastTalked: lastTalked[id] ?? 0 }),
+    [shown, run, heard, lastTalked],
+  );
+
+  // Who has something new to say: the "!" over their heads. Re-sent when the city is ready.
+  const alerts = useMemo(
+    () => Object.fromEntries(NPCS.map((n) => [n.id, talk(n.id, talkContext(n.id)).alert])),
+    [talkContext],
+  );
+  useEffect(() => {
+    EventBus.emit("npc-alerts", alerts);
+    return EventBus.on("city-ready", () => EventBus.emit("npc-alerts", alerts));
+  }, [alerts]);
 
   useEffect(
     () =>
       EventBus.on("building-entered", (id) => {
         setInside(id);
-        if (run && NOTICED.includes(id) && run.state.available_actions.includes("visit")) {
-          void act({ kind: "visit", target: id });
-        }
+        const place = PLACES[id];
+        if (run && place && run.state.available_actions.includes("visit")) void act({ kind: "visit", target: place });
       }),
-    [run, act],
+    // ``act`` is recreated every render; the latest run is what matters.
+    [run?.run_id, run?.state.version],
   );
   useEffect(
     () => EventBus.on("building-hover", (id, anchor) => setHover(id && anchor ? { id, anchor } : null)),
+    [],
+  );
+  useEffect(
+    () =>
+      EventBus.on("npc-talk", (id) => {
+        setTried(false);
+        setTalkingTo(id);
+      }),
     [],
   );
 
@@ -107,6 +146,22 @@ export function App() {
   };
 
   const view = shown ? viewOf(shown.state) : undefined;
+  const leaveNpc = () => {
+    if (!talkingTo) return;
+    EventBus.emit("npc-left", talkingTo);
+    setLastTalked((seen) => ({ ...seen, [talkingTo]: version }));
+    setTalkingTo(null);
+  };
+
+  const choose = (choice: Choice) => {
+    if (choice.goTo) {
+      leaveNpc();
+      EventBus.emit("go-to-building", choice.goTo);
+    } else if (choice.action) {
+      setTried(true);
+      void act(choice.action);
+    }
+  };
   const freeVisit = (id: BuildingId) =>
     (id === "market" && !!view?.free_visits?.market) || (id === "harbor" && !!view?.free_visits?.exchange);
   const phase = view?.phase;
@@ -121,12 +176,22 @@ export function App() {
       {shown && phase !== "ended" && (
         <Hud run={shown} ledger={bank.ledger} onLedger={() => setDrawer("ledger")} onScrolls={() => setDrawer("scrolls")} />
       )}
-      {hover && !inside && !card && (
+      {hover && !inside && !card && !talkingTo && (
         <BuildingCard building={BUILDINGS_BY_ID[hover.id]} anchor={hover.anchor} freeVisit={freeVisit(hover.id)} />
       )}
 
       {inside && room && phase !== "ended" && <BuildingRoom building={BUILDINGS_BY_ID[inside]} room={room} onLeave={leave} />}
       {inside && !room && <Dialogue building={BUILDINGS_BY_ID[inside]} onLeave={leave} />}
+      {talkingTo && !card && (
+        <NpcDialogue
+          npc={NPCS_BY_ID[talkingTo]}
+          talk={talk(talkingTo, talkContext(talkingTo))}
+          busy={busy}
+          error={tried ? error : ""}
+          onChoose={choose}
+          onLeave={leaveNpc}
+        />
+      )}
 
       {run && card && (
         <EventCard

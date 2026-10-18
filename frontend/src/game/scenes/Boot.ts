@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { AVATAR, LOOKS } from "../profile";
 import { CRITTERS, FRAMES, GENERATED, PLAYER, SHEETS, type Rect } from "../assets";
 import { CRITTER_ART } from "../critterArt";
+import { NPCS, NPC_FRAME, npcSheetKey, npcSheetUrl } from "../npcs";
 import { drawGlints, drawGround } from "../ground";
 import { seededRandom } from "../random";
 
@@ -18,6 +19,12 @@ export class Boot extends Phaser.Scene {
     for (const look of LOOKS) {
       this.load.spritesheet(AVATAR.key(look), AVATAR.url(look), { frameWidth: AVATAR.w, frameHeight: AVATAR.h });
     }
+    for (const npc of NPCS) {
+      this.load.spritesheet(npcSheetKey(npc), npcSheetUrl(npc), {
+        frameWidth: NPC_FRAME.width,
+        frameHeight: NPC_FRAME.height,
+      });
+    }
   }
 
   create(): void {
@@ -30,6 +37,7 @@ export class Boot extends Phaser.Scene {
     createPlayerAnimations(this);
     drawLamp(this);
     drawKelpBed(this);
+    drawAlert(this);
     drawFish(this);
     drawCritters(this);
     drawBeam(this);
@@ -138,6 +146,23 @@ function drawLamp(scene: Phaser.Scene): void {
     s: "#00000055", // shadow
   };
   pixelTexture(scene, GENERATED.lamp, rows, palette);
+}
+
+/** The gold speech bubble with a "!" over someone who has something new to say, 7 x 10. */
+function drawAlert(scene: Phaser.Scene): void {
+  const rows = [
+    ".kkkkk.",
+    "kgggggk",
+    "kggkggk",
+    "kggkggk",
+    "kggkggk",
+    "kgggggk",
+    "kggkggk",
+    "kgggggk",
+    ".kkkkk.",
+    "...k...",
+  ];
+  pixelTexture(scene, GENERATED.alert, rows, { k: "#1a2a33", g: "#f2cd6e" });
 }
 
 /** One fenced bed of the kelp farm: dark silt in a timber frame, 128 x 12. */
