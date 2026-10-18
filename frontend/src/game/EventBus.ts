@@ -18,6 +18,8 @@ export interface GameEvents {
   "building-entered": [id: BuildingId];
   /** React closed the building's panel; the player steps back outside. */
   "building-left": [id: BuildingId];
+  /** React sends the player to a building (an event card's "go there"); they hop over and go in. */
+  "go-to-building": [id: BuildingId];
 }
 
 type Handler<K extends keyof GameEvents> = (...args: GameEvents[K]) => void;

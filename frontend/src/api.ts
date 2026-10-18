@@ -18,4 +18,7 @@ export const api = {
   run: (id: string) => request<Run>(`/runs/${encodeURIComponent(id)}`),
   action: (id: string, action: Action) => request<Run>(`/runs/${encodeURIComponent(id)}/actions`, action),
   ledger: (id: string) => request<Ledger>(`/runs/${encodeURIComponent(id)}/ledger`),
+  chronicle: (id: string, season: string) =>
+    request<{ text: string; source: 'gemini' | 'template' }>(
+      `/runs/${encodeURIComponent(id)}/chronicle?season=${encodeURIComponent(season)}`),
 };

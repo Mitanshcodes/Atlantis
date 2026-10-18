@@ -403,6 +403,18 @@ cd frontend && npm install && npm run dev                      # proxies /api to
 - Nessie records per move: deposits (wages, sales, dividends, interest, advances), purchases at the five world merchants (Market, Exchange, Passage, Council) or withdrawals, Purse↔Vault/credit transfers, a `credit` card account, **loan records** for the guild, circle, Black Reef and Bank loans with **PUT `loan_update`** whenever a balance changes, and bill records with `bill_update` when bills are verified.
 - Loan/bill records are only emitted when `NESSIE_LOANS_VERIFIED` / `NESSIE_BILLS_VERIFIED` are true, because P2's sync holds every later effect behind an unverified one. Money always moves either way. A paid-off loan's remote record keeps its last amount (no PUT to 0 until verified live).
 
+## The game loop in the browser (integrated)
+
+`App.tsx` layers the game over the city, all driven by the P2 store (`useBanking`) and the engine's `state.details`:
+
+- **No run:** `ui/ClassSelect.tsx` (title screen, four classes). A new run gets a random seed; `?seed=N` pins one (judge demo).
+- **Buildings:** clicking one hops the player there; `building-entered` opens `ui/rooms/` for it: Bank (Purse/Vault, card, loans, bills, Standing), Grand Market and Harbor Exchange (one-visit baskets, Passage), Guild Hall (work, rest, end season), Drowned Bell, Black Reef, Lending Circle, Council. Rooms only offer `available_actions`; the engine decides. Entering the tavern or the Black Reef sends `visit` (the event deck notices).
+- **After each move:** `details.moments` (from the bridge) queue as `ui/EventCard.tsx` cards (events with choices: dispute fraud, walk away from the Pearl Exchange, go to Grin) and, where a season ended, `ui/Chronicle.tsx` (text from `GET /chronicle`; Gemini if `GEMINI_API_KEY`/`GEMINI_MODEL` are set, else P2's template). Order is preserved: the old season's cards, its Chronicle, then what opened the new one.
+- **The end:** in the final call (`phase == final_call`) `ui/Ending.tsx` shows the Passage checklist; then the ending with the Modern Mirror and Scrolls.
+- **HUD:** P3's HUD plus Scrolls and Ledger buttons; the Ledger shows each Nessie record's status and the Purse/Vault check against Nessie.
+- **Words:** every player-facing line is in `ui/copy.ts` (from the design doc) until Mitansh's `content/` replaces it.
+- **Dev hook:** in dev builds `window.atlantis.EventBus` lets a console or test script drive the city, e.g. `atlantis.EventBus.emit("go-to-building", "bank")`.
+
 ## Frontend city (P3)
 
 Run from `frontend/`: `npm install`, then `npm run dev` (http://localhost:5173) and `npm run typecheck`.

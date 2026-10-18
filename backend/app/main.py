@@ -76,7 +76,10 @@ def create_app(settings=None, client=None, engine_adapter=None, background=True)
     @app.get('/api/runs/{run_id}')
     def get_run(run_id: str):
         with store.connect() as db:
-            return {'run_id': run_id, 'state': public(read_run(db, run_id)), 'events': []}
+            state = public(read_run(db, run_id))
+            rows = db.execute('SELECT text FROM events WHERE run_id=? ORDER BY seq DESC LIMIT 12', (run_id,)).fetchall()
+            # Recent news, oldest first, so a reloaded page still has something to say.
+            return {'run_id': run_id, 'state': state, 'events': [row['text'] for row in reversed(rows)]}
 
     @app.post('/api/runs/{run_id}/actions')
     def act(run_id: str, action: Action):

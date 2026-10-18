@@ -6,6 +6,11 @@ import "./styles.css";
 
 applyCursorStyles();
 
+// Dev builds only: lets a browser console or test script drive the city (e.g. go to a building).
+if (import.meta.env.DEV) {
+  void import("./game/EventBus").then(({ EventBus }) => Object.assign(window, { atlantis: { EventBus } }));
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />

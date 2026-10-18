@@ -108,7 +108,7 @@ def test_engine_secrets_never_reach_the_browser(make):
     client, _, _ = make()
     run = start(client)
     for body in (run, client.get(f"/api/runs/{run['run_id']}").json(), ok(client, run, "work")):
-        assert set(body["state"]["details"]) == {"view", "engine_owns_obligations"}
+        assert set(body["state"]["details"]) == {"view", "moments", "engine_owns_obligations"}
         text = json.dumps(body)
         assert "scenario" not in text and "debasement_season" not in text and "voyage_outcome" not in text
 
@@ -196,3 +196,24 @@ def test_verified_bills_are_created_updated_and_paid(make):
     kinds = [e["body"]["kind"] for e in entries]
     assert "bill" in kinds and "bill_update" in kinds
     assert "PUT" in remote.methods
+
+
+def test_moments_and_news_survive_for_the_ui(make):
+    client, _, _ = make()
+    run = start(client)
+    run = ok(client, run, "end_season")
+    moments = run["state"]["details"]["moments"]
+    assert {"kind": "season_end", "season": "Spring"}.items() <= next(m for m in moments if m["kind"] == "season_end").items()
+    assert run["state"]["season"] == "Summer"
+    reloaded = client.get(f"/api/runs/{run['run_id']}").json()
+    assert reloaded["events"] and any("Summer began" in line for line in reloaded["events"])
+
+
+def test_moments_name_events_and_scrolls_by_plain_value():
+    from app.engine.state import EventKind, LogEvent, ScrollId
+
+    moments = bridge.moments_of([
+        LogEvent(0, 1, "event", {"event": EventKind.PICKPOCKET, "amount": 10}),
+        LogEvent(0, 1, "scroll", {"scroll": ScrollId.RAINY_DAY}),
+    ])
+    assert [m.get("event") or m.get("scroll") for m in moments] == ["pickpocket", "rainy_day"]

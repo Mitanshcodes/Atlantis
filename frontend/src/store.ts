@@ -6,6 +6,11 @@ export type ActionInput = Omit<Action, 'action_id' | 'expected_version'>;
 type Pending = { run_id: string; action: Action };
 const LAST_RUN = 'atlantis.p2.run';
 const PENDING = 'atlantis.p2.pending';
+/** A fresh seed per journey; ``?seed=123`` pins one (the judge-mode demo run). */
+function journeySeed(): number {
+  const pinned = Number(new URLSearchParams(window.location.search).get('seed'));
+  return Number.isSafeInteger(pinned) && pinned > 0 ? pinned : Math.floor(Math.random() * 2 ** 31);
+}
 function readPending(): Pending | null {
   try { return JSON.parse(localStorage.getItem(PENDING) || 'null'); } catch { return null; }
 }
@@ -42,7 +47,7 @@ export function useBanking() {
   async function create(classId: ClassId) {
     await guarded(async () => {
       if (pending) throw new Error('Resolve the pending action before opening a new journey');
-      const next = await api.create(classId);
+      const next = await api.create(classId, journeySeed());
       active.current = next.run_id; localStorage.setItem(LAST_RUN, next.run_id);
       setRun(next); setLedger(null); await refresh(next.run_id);
     });
@@ -69,5 +74,12 @@ export function useBanking() {
     });
   }
   const retry = () => guarded(async () => { if (pending) await deliver(pending); });
-  return { run, ledger, busy, error, pending, create, act, retry };
+  /** Leave this journey (it stays saved on the server) and return to choosing a class. */
+  function abandon() {
+    if (locked.current) return;
+    localStorage.removeItem(LAST_RUN); localStorage.removeItem(PENDING);
+    active.current = null; setRun(null); setLedger(null); setPending(null); setError('');
+  }
+  const clearError = () => setError('');
+  return { run, ledger, busy, error, pending, create, act, retry, abandon, clearError };
 }

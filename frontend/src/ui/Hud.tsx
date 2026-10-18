@@ -1,32 +1,21 @@
-import type { Run, State } from "../types";
-
-/**
- * What the HUD reads from ``state.details.view`` (see backend/app/engine/bridge.py ``view``). The
- * shared contract leaves ``details`` untyped, so every field is optional and read defensively.
- */
-export interface HudView {
-  season_index?: number;
-  tide?: number;
-  tides_total?: number;
-  hungry_next?: boolean;
-  free_visits?: { market?: boolean; exchange?: boolean };
-  passage_price?: number;
-  passage_paid?: number | null;
-  net_worth?: number;
-  scrolls?: string[];
-}
-
-export const viewOf = (state: State): HudView => (state.details.view ?? {}) as HudView;
+import type { Ledger, Run, State } from "../types";
+import { fmt, viewOf, type GameView as HudView } from "./view";
 
 const SEASONS = ["Spring", "Summer", "Autumn", "Long Dark"] as const;
 const SCROLL_COUNT = 12;
 
-/** Money arrives in hundredths of a coin; the HUD shows whole coins. */
-const coins = (minor: number) => Math.floor(minor / 100);
-const fmt = (minor: number) => `${coins(minor).toLocaleString("en-US")}◈`;
-
 /** The season, the money, the news and the Passage meter, laid over the corners of the city. */
-export function Hud({ run }: { run: Run }) {
+export function Hud({
+  run,
+  ledger,
+  onLedger,
+  onScrolls,
+}: {
+  run: Run;
+  ledger?: Ledger | null;
+  onLedger?: () => void;
+  onScrolls?: () => void;
+}) {
   const { state } = run;
   const view = viewOf(state);
   return (
@@ -35,12 +24,29 @@ export function Hud({ run }: { run: Run }) {
       <div className="hud__top-right">
         <Stats state={state} />
         <div className="hud__tabs">
-          <span className="chip">Scrolls {view.scrolls?.length ?? 0}/{SCROLL_COUNT}</span>
+          <button className="chip chip--button" onClick={onScrolls}>
+            Scrolls {view.scrolls?.length ?? 0}/{SCROLL_COUNT}
+          </button>
+          <button className="chip chip--button" onClick={onLedger} title="Every coin movement, recorded on Nessie">
+            Ledger <NessieStatus ledger={ledger} />
+          </button>
         </div>
       </div>
       <News events={run.events} />
       <Passage state={state} view={view} />
     </div>
+  );
+}
+
+/** A small mark for how the Nessie records stand: all confirmed, some waiting, or offline. */
+function NessieStatus({ ledger }: { ledger?: Ledger | null }) {
+  if (!ledger) return null;
+  if (!ledger.live) return <span className="nessie nessie--off">offline</span>;
+  const waiting = ledger.entries.filter((e) => e.status !== "confirmed").length;
+  return waiting ? (
+    <span className="nessie nessie--wait">{waiting} syncing</span>
+  ) : (
+    <span className="nessie nessie--ok">✓ Nessie</span>
   );
 }
 

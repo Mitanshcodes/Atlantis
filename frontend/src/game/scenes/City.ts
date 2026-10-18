@@ -45,6 +45,8 @@ export class City extends Phaser.Scene {
   private playerSprite!: Phaser.GameObjects.Sprite;
   private facing: Facing = "down";
   private hopping = false;
+  /** A building asked for mid-hop (e.g. "go to the Bank" while popping out of a door). */
+  private queued?: Building;
   private poof!: Phaser.GameObjects.Particles.ParticleEmitter;
   private rise!: Phaser.GameObjects.Particles.ParticleEmitter;
   private inside: BuildingId | null = null;
@@ -100,7 +102,11 @@ export class City extends Phaser.Scene {
     this.setupInput();
 
     const offLeft = EventBus.on("building-left", (id) => this.leaveBuilding(id));
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, offLeft);
+    const offGo = EventBus.on("go-to-building", (id) => this.goTo(BUILDINGS_BY_ID[id]));
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      offLeft();
+      offGo();
+    });
     EventBus.emit("city-ready");
   }
 
@@ -271,6 +277,10 @@ export class City extends Phaser.Scene {
 
   private goTo(building: Building): void {
     if (this.inside) return;
+    if (this.hopping) {
+      this.queued = building;
+      return;
+    }
     this.hopTo(building.door, () => this.enterBuilding(building.id));
   }
 
@@ -329,6 +339,9 @@ export class City extends Phaser.Scene {
       onComplete: () => {
         this.hopping = false;
         onArrive?.();
+        const next = this.queued;
+        this.queued = undefined;
+        if (next) this.goTo(next);
       },
     });
   }
