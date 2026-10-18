@@ -37,6 +37,8 @@ export interface GameEvents {
   "tour-spot": [at: { x: number; y: number }];
   /** Who has something new to say, worked out by React from the engine state. */
   "npc-alerts": [alerts: Partial<Record<NpcId, boolean>>];
+  /** The season (0 Spring to 3 the Long Dark): the city darkens as Atlantis sinks. */
+  "world-season": [season: number];
 }
 
 type Handler<K extends keyof GameEvents> = (...args: GameEvents[K]) => void;

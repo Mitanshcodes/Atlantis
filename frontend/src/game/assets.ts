@@ -186,6 +186,15 @@ export const GENERATED = {
   lamp: "gen-lamp",
   kelpBed: "gen-kelp-bed",
   alert: "gen-alert",
+  skyline: "gen-skyline",
+  tholos: "gen-tholos",
+  fountain: "gen-fountain",
+  statue: "gen-statue",
+  planterCypress: "gen-planter-cypress",
+  urn: "gen-urn",
+  ruin: "gen-ruin",
+  ring: "gen-ring",
+  crystal: "gen-crystal",
 } as const;
 
 /** Sea creatures drawn in Boot (no pack has any). Each is a small sheet of animation frames. */

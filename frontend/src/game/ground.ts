@@ -21,6 +21,8 @@ import {
   RIM,
   SEA_Y,
   STAIR_HALF,
+  TERRACE_WALL,
+  TERRACE_Y,
   WORLD_H,
   WORLD_W,
   groundAt,
@@ -72,10 +74,10 @@ const C = {
   waterBright: hex(0x29a8b0),
   glint: hex(0x9ee8df),
 
-  sea: hex(0x0d2431),
-  seaAlt: hex(0x102b39),
-  seaLight: hex(0x16384a),
-  seaSand: hex(0x1d4250),
+  sea: hex(0x1f6f86),
+  seaAlt: hex(0x22778d),
+  seaLight: hex(0x2c8799),
+  seaSand: hex(0x3a95a0),
 
   step: hex(0xf1e8d0),
   stepRiser: hex(0xc8b88f),
@@ -87,6 +89,7 @@ const C = {
 } as const;
 
 const MASK_SCALE = 2;
+
 
 const KIND: Record<Ground, number> = {
   plaza: 0,
@@ -100,6 +103,8 @@ const KIND: Record<Ground, number> = {
   cliff: 8,
   sea: 9,
   gate: 10,
+  terrace: 11,
+  terraceWall: 12,
 };
 const LAND = new Set([KIND.plaza, KIND.sandstone, KIND.stone, KIND.road]);
 
@@ -241,6 +246,25 @@ export function drawGround(scene: Phaser.Scene): void {
     return (x >> 1) % 2 === (y >> 1) % 2 && d < 14 ? C.seaAlt : C.sea;
   };
 
+  /** The skyline terrace (the painting in skylineArt.ts covers it): pale flagstones, a gold inlay. */
+  const terraceColor = (x: number, y: number): RGB => {
+    const fromEdge = TERRACE_Y - TERRACE_WALL - y;
+    if (fromEdge === 9 || fromEdge === 10) return (x >> 1) % 3 === 0 ? C.inlayLight : C.inlay;
+    const c = brickColor(x, y, 20, 10, C.marble, C.marbleLight, C.marbleLight, C.marbleShade, C.marbleJoint);
+    if (c === C.marble && hash2(x, y, 23) % 47 === 0) return C.marbleShade;
+    return c;
+  };
+
+  /** The terrace's retaining wall: a lit coping, then courses of stone down to its shadow. */
+  const terraceWallColor = (x: number, y: number): RGB => {
+    const d = y - (TERRACE_Y - TERRACE_WALL);
+    if (d === 0) return C.outline;
+    if (d < 3) return C.marbleLight;
+    if (d === 3) return C.marbleJoint;
+    if (d === TERRACE_WALL - 1) return C.outline;
+    return brickColor(x, y, 12, 4, C.marbleShade, C.marble, C.marble, C.marbleJoint, C.marbleJoint);
+  };
+
   const cliffColor = (x: number, y: number): RGB => {
     const d = y - (SEA_Y - CLIFF_H);
     if (d === 0) return C.outline;
@@ -293,6 +317,12 @@ export function drawGround(scene: Phaser.Scene): void {
           break;
         case KIND.cliff:
           c = cliffColor(x, y);
+          break;
+        case KIND.terrace:
+          c = terraceColor(x, y);
+          break;
+        case KIND.terraceWall:
+          c = terraceWallColor(x, y);
           break;
         case KIND.gate:
           c = gateColor(x, y);

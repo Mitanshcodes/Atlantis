@@ -17,6 +17,9 @@
 The city floor (marble, sandstone, mossy stone, canals, stair, sea), lamps, kelp beds, light
 shafts and caustics are drawn in code, as are the sea creatures (fish, jellyfish, crabs, clams,
 starfish, seahorses, octopuses, pufferfish and the turtle), since none of the packs include any.
+The skyline painting above the city (sky, ships, towers, palaces, the great dome and its reef)
+and the floating orichalcum crystal are drawn in code too, inspired by the design references, as
+are the sandstone ring's tholoi, fountains, statues, planters, urns and ruined colonnades.
 
 ## Fonts
 

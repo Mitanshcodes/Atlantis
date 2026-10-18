@@ -74,6 +74,34 @@ export function addColorGrade(scene: Phaser.Scene): void {
   }
 }
 
+/**
+ * How far Atlantis has sunk, season by season (Spring, Summer, Autumn, the Long Dark): a deep-blue
+ * multiply that darkens the city, and a murk that clouds it. Glows sit above both, so the lamps and
+ * the crystal shine brighter as the water darkens.
+ */
+const SINKING = [
+  { dark: 0, murk: 0 },
+  { dark: 0.16, murk: 0.05 },
+  { dark: 0.3, murk: 0.11 },
+  { dark: 0.46, murk: 0.18 },
+] as const;
+
+/** Darken the water over the city for a season; returns the setter, which eases into each change. */
+export function addSinking(scene: Phaser.Scene): (season: number) => void {
+  const dark = scene.add
+    .rectangle(0, 0, WORLD_W, WORLD_H, 0x2a5aa6)
+    .setOrigin(0)
+    .setAlpha(0)
+    .setBlendMode(Phaser.BlendModes.MULTIPLY)
+    .setDepth(DEPTH.tint);
+  const murk = scene.add.rectangle(0, 0, WORLD_W, WORLD_H, 0x06204a).setOrigin(0).setAlpha(0).setDepth(DEPTH.tint);
+  return (season) => {
+    const level = SINKING[Phaser.Math.Clamp(Math.round(season), 0, SINKING.length - 1)];
+    scene.tweens.add({ targets: dark, alpha: level.dark, duration: 2500, ease: "Sine.easeInOut" });
+    scene.tweens.add({ targets: murk, alpha: level.murk, duration: 2500, ease: "Sine.easeInOut" });
+  };
+}
+
 /** Light dashes drifting along the canals, clipped to the water. WebGL only (bitmap masks). */
 export function addWaterShimmer(scene: Phaser.Scene): (delta: number) => void {
   if (!isWebGL(scene)) return () => undefined;

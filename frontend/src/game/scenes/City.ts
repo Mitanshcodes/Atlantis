@@ -3,9 +3,11 @@ import { GENERATED, PLAYER, frameRect, type Facing, type PlacedSprite } from "..
 import { BUILDINGS, BUILDINGS_BY_ID, type Building, type BuildingId } from "../buildings";
 import {
   BUBBLE_VENTS,
+  FOUNTAINS,
   GENERATED_DECOR,
   LAMP_LIGHTS,
   PLAYER_START,
+  SKYLINE_CRYSTAL,
   WORLD_H,
   WORLD_W,
   buildDecor,
@@ -26,6 +28,7 @@ import {
   addGlow,
   addLightBeams,
   addParticles,
+  addSinking,
   addWaterShimmer,
   sway,
 } from "../fx/underwater";
@@ -92,12 +95,14 @@ export class City extends Phaser.Scene {
       shimmer(delta);
       caustics(delta);
     });
+    this.createSkyline();
     this.createDecor();
     this.createBuildings();
     this.createPlayer();
     this.createNpcs();
 
     addColorGrade(this);
+    const sink = addSinking(this);
     addLightBeams(this);
     const reef = BUILDINGS_BY_ID.black_reef.sprites[0];
     addParticles(this, [
@@ -105,6 +110,7 @@ export class City extends Phaser.Scene {
       { x: GATE.x, y: GATE.y }, // the Sea Gate
       { x: 170, y: WORLD_H - 30 }, // the wreck below the wall
       ...BUBBLE_VENTS,
+      ...FOUNTAINS,
     ]);
     this.updaters.push(addFish(this), addCritters(this));
     for (const [id, color, size, strength] of [
@@ -118,6 +124,9 @@ export class City extends Phaser.Scene {
     }
     for (const light of LAMP_LIGHTS) addGlow(this, light.x, light.y, 0x7ff6ee, 36, 0.35);
     addGlow(this, GATE.x, GATE.y, 0x7ff6ee, 120, 0.3);
+    for (const f of FOUNTAINS) addGlow(this, f.x, f.y + 14, 0x9ff6ee, 60, 0.2);
+    addGlow(this, SKYLINE_CRYSTAL.x, SKYLINE_CRYSTAL.y, 0xc8a8ff, 150, 0.22);
+    addGlow(this, SKYLINE_CRYSTAL.x, SKYLINE_CRYSTAL.y, 0x7ff6ee, 70, 0.2);
 
     this.fitDepthFade = addDepthFade(this);
     this.setupCamera();
@@ -128,6 +137,7 @@ export class City extends Phaser.Scene {
       EventBus.on("go-to-building", (id) => this.goTo(BUILDINGS_BY_ID[id])),
       EventBus.on("tour-focus", (id) => this.tourFocus(id)),
       EventBus.on("npc-left", (id) => this.leaveConversation(id)),
+      EventBus.on("world-season", sink),
       EventBus.on("npc-alerts", (alerts) => {
         for (const [id, walker] of this.walkers) walker.setAlert(!!alerts[id]);
       }),
@@ -166,10 +176,52 @@ export class City extends Phaser.Scene {
       .setDepth(DEPTH.objects + placed.y);
   }
 
+  /**
+   * The skyline painting across the top of the map, and over the great dome the orichalcum
+   * crystal: bobbing, shedding sparks, wrapped in a swirl of light like the design reference.
+   */
+  private createSkyline(): void {
+    this.add.image(0, 0, GENERATED.skyline).setOrigin(0).setDepth(DEPTH.ground + 0.1);
+    const { x, y } = SKYLINE_CRYSTAL;
+    const crystal = this.add.image(x, y, GENERATED.crystal).setDepth(DEPTH.glow - 1);
+    this.tweens.add({ targets: crystal, y: y - 6, duration: 2600, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    // Rings of light stacked around it, each breathing a beat after the one above: a slow swirl.
+    const rings = Array.from({ length: 6 }, () =>
+      this.add.image(x, y, GENERATED.ring).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.glow - 2),
+    );
+    this.updaters.push((time) => {
+      const t = time / 1000;
+      rings.forEach((ring, i) => {
+        const wave = Math.sin(t * 1.8 - i * 0.8);
+        const size = (0.5 + i * 0.1) * (0.85 + 0.2 * wave);
+        ring
+          .setPosition(x, crystal.y - 16 + i * 8)
+          .setScale(size)
+          .setAlpha(0.2 + 0.35 * ((wave + 1) / 2));
+      });
+    });
+    this.add
+      .particles(x, y, GENERATED.mote, {
+        lifespan: { min: 1600, max: 2600 },
+        speed: { min: 6, max: 18 },
+        angle: { min: 0, max: 360 },
+        scale: { start: 1.5, end: 0 },
+        alpha: { start: 0.9, end: 0 },
+        tint: [0xe8d8ff, 0x9ff6ee, 0xffffff],
+        blendMode: Phaser.BlendModes.ADD,
+        frequency: 160,
+      })
+      .setDepth(DEPTH.glow);
+  }
+
   private createDecor(): void {
     const rand = seededRandom(17);
     for (const decor of GENERATED_DECOR) {
-      this.add.image(decor.x, decor.y, decor.key).setOrigin(0.5, 1).setDepth(DEPTH.objects + decor.y);
+      this.add
+        .image(decor.x, decor.y, decor.key)
+        .setOrigin(0.5, 1)
+        .setFlipX(!!decor.flip)
+        .setDepth(DEPTH.objects + decor.y);
     }
     for (const decor of buildDecor()) {
       const sprite = this.placeSprite(decor, !decor.sway);
@@ -486,7 +538,7 @@ export class City extends Phaser.Scene {
 
   private setupCamera(): void {
     const cam = this.cameras.main;
-    cam.setBounds(0, 0, WORLD_W, WORLD_H).setRoundPixels(true).setBackgroundColor("#0d2431");
+    cam.setBounds(0, 0, WORLD_W, WORLD_H).setRoundPixels(true).setBackgroundColor("#1f6f86");
     // ?overview shows the whole map at once (for layout checks; not pixel-perfect).
     const overview = new URLSearchParams(window.location.search).has("overview");
     // The smallest whole zoom whose view still fits inside the city, so no edge ever shows.

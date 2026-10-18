@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ActionInput } from "../store";
 import type { Run } from "../types";
 import { DECK, EVENT_TITLES, MOMENT_TITLES, SCROLLS, SHOCKS } from "./copy";
-import { toMinor, type Moment } from "./view";
+import { toMinor, viewOf, type Moment } from "./view";
 
 interface Props {
   moment: Moment;
@@ -21,6 +21,10 @@ export function EventCard({ moment, run, busy, act, onDone, onGo }: Props) {
   const title =
     moment.kind === "event" ? EVENT_TITLES[moment.event ?? ""] ?? "Something Happened" : MOMENT_TITLES[moment.kind] ?? "News";
   const scroll = moment.scroll ? SCROLLS[moment.scroll] : undefined;
+  if (moment.kind === "scroll" && scroll) {
+    const earned = viewOf(run.state).scrolls?.length ?? 0;
+    return <AchievementCard name={scroll.name} how={scroll.how} earned={earned} onDone={onDone} />;
+  }
   const shock = moment.kind === "market_shock" && moment.shock ? SHOCKS[moment.shock] : undefined;
   const means = shock?.means ?? (moment.kind === "event" ? DECK[moment.event ?? ""]?.means : undefined);
   const tone =
@@ -102,6 +106,62 @@ export function EventCard({ moment, run, busy, act, onDone, onGo }: Props) {
         {means && <p className="event-card__means">{means}</p>}
         <div className="event-card__actions">{actions}</div>
       </section>
+    </div>
+  );
+}
+
+interface AchievementProps {
+  name: string;
+  how: string;
+  /** Scrolls earned so far, this one included. */
+  earned: number;
+  onDone: () => void;
+}
+
+/**
+ * A Scroll earned: the year's achievements. A gold ribbon, then the Scroll itself unrolled on
+ * parchment between gilded rods, sealed in wax, with light turning slowly behind it.
+ */
+function AchievementCard({ name, how, earned, onDone }: AchievementProps) {
+  return (
+    <div className="card-backdrop achievement-backdrop">
+      <div className="achievement" role="alertdialog" aria-labelledby="achievement-name" aria-describedby="achievement-how">
+        <div className="achievement__rays" aria-hidden="true" />
+        <p className="achievement__ribbon">
+          <span>Achievement unlocked!</span>
+        </p>
+        <div className="achievement__scroll">
+          <span className="achievement__rod" aria-hidden="true" />
+          <div className="achievement__parchment">
+            <p className="achievement__eyebrow">A new Scroll</p>
+            <h2 id="achievement-name" className="achievement__name">
+              {name}
+            </h2>
+            <p id="achievement-how" className="achievement__how">
+              {how}
+            </p>
+            <p className="achievement__count">
+              {earned} of {Object.keys(SCROLLS).length} Scrolls earned
+            </p>
+            <span className="achievement__seal" aria-hidden="true">
+              ◈
+            </span>
+          </div>
+          <span className="achievement__rod" aria-hidden="true" />
+        </div>
+        <span className="achievement__sparkle achievement__sparkle--a" aria-hidden="true">
+          ✦
+        </span>
+        <span className="achievement__sparkle achievement__sparkle--b" aria-hidden="true">
+          ✦
+        </span>
+        <span className="achievement__sparkle achievement__sparkle--c" aria-hidden="true">
+          ✧
+        </span>
+        <button className="button achievement__button" onClick={onDone} autoFocus>
+          Onward
+        </button>
+      </div>
     </div>
   );
 }
