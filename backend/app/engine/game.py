@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Callable, Dict, List, Type
 
 from app import config
-from app.engine import business, events, exchange, market, money, scrolls
+from app.engine import business, events, exchange, market, money, report, scrolls
 from app.engine.actions import (
     TIDE_ACTIONS,
     ActionError,
@@ -122,6 +122,8 @@ def step(s: GameState, action: object) -> None:
     elif spends_tide or isinstance(action, EndSeason):
         money.require(s.phase == Phase.PLAYING and s.tides_left > 0, "no_tides", "No tides left this season.")
     handler(s, action)
+    if type(action) in _VISIT_PLACES:
+        s.record("trip", place=_VISIT_PLACES[type(action)], free=free_place is not None)
     if free_place is not None:
         s.free_visits_used.append(free_place)
     if spends_tide:
@@ -156,6 +158,7 @@ def _pass_tide(s: GameState) -> None:
     if s.is_long_dark:
         s.phase = Phase.FINAL_CALL
         s.record("final_call", passage_price=money.passage_price(s))
+        report.snapshot(s, "end")
     else:
         _end_season(s)
         s.season += 1
@@ -171,7 +174,7 @@ def _end_season(s: GameState) -> None:
     s.hungry_next = market.eat_kelp(s)["hungry"]
     market.spoil_kelp(s)
     events.expire_offers(s)
-    report = money.settle_season(s)
+    settled = money.settle_season(s)
     exchange.charge_index_fee(s)
     scrolls.check(s)
     s.record(
@@ -181,8 +184,9 @@ def _end_season(s: GameState) -> None:
         vault=s.vault,
         debt=money.total_debt(s),
         hungry=s.hungry_next,
-        **report,
+        **settled,
     )
+    report.snapshot(s, "end")
 
 
 def _open_season(s: GameState) -> None:
@@ -213,6 +217,7 @@ def _open_season(s: GameState) -> None:
     s.tides_total = max(config.MIN_TIDES, tides)
     events.schedule(s, r)
     events.announce(s)
+    report.snapshot(s, "open")
 
 
 # --- Action handlers ------------------------------------------------------------------------------

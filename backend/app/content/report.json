@@ -1,0 +1,96 @@
+{
+  "_note": "The season report card. Marks are chosen by app/engine/report.py; {braces} are filled with the season's numbers (coin in ◈, shares in %).",
+  "subjects": {
+    "pace": "On course for Passage",
+    "tides": "Use of tides",
+    "food": "Feeding the household",
+    "safety": "Keeping coin safe",
+    "debt": "Debt"
+  },
+  "marks": {
+    "pace.A": "You're worth {worth}◈, {share}% of next season's Passage ({passage}◈). That's ahead of where you need to be.",
+    "pace.B": "You're worth {worth}◈, {share}% of next season's Passage. Close, but you want about {target}% by now.",
+    "pace.C": "You're worth {worth}◈, {share}% of next season's Passage. You want about {target}% by now, and wages alone won't close that gap.",
+    "pace.D": "You're worth {worth}◈, only {share}% of next season's Passage ({passage}◈). At this rate the ship leaves without you.",
+    "tides.A": "Every tide went to something: {work} shifts of work, the rest on trades.",
+    "tides.B": "One tide went unused. That's about {cost}◈ in wages you didn't earn.",
+    "tides.C": "{idle} tides went unused, about {cost}◈ you could have earned.",
+    "tides.D": "{idle} of your {total} tides went unused. That's about {cost}◈ in wages left on the table.",
+    "food.hungry": "Your household went hungry. You start next season 2 tides short.",
+    "food.card": "Kelp went on your Leviathan card, and that balance grows every season you carry it.",
+    "food.dark_short": "Your cellar holds {stored} kelp going into the Long Dark, when kelp costs about {dark_price}◈ each. Your household eats {need}.",
+    "food.stocked": "You stocked the cellar ahead of time, so the household didn't pay the season-end price.",
+    "food.bought": "Your household bought {bought_at_end} kelp at the season-end price, {cost_at_end}◈ in all. Kelp bought earlier, when it's cheap, costs less.",
+    "safety.scam": "You lost {lost}◈ to the Pearl Exchange. Nobody can promise 40% a season.",
+    "safety.lost": "You lost {lost}◈ to thieves and charges you didn't dispute.",
+    "safety.no_vault": "All {purse}◈ sits in your Purse. You have no Vault yet; Ione can open one at the Bank for free.",
+    "safety.vault_locked": "All {purse}◈ sits in your Purse. The Bank won't give you a Vault until your Standing reaches {standing}.",
+    "safety.idle": "{purse}◈ sat in your Purse at season's end. It earns nothing there, and a full Purse draws pickpockets.",
+    "safety.kept": "Most of your coin is in the Vault, where it earned {interest}◈ and can't be stolen.",
+    "safety.fair": "{purse}◈ in your Purse, {vault}◈ in the Vault. Fine, though Purse coin earns nothing.",
+    "debt.reef": "You owe Grin. His fee adds half again every season, and nobody boards owing him.",
+    "debt.missed": "A payment was missed. That cost a late fee, and the Bank trusts you less for it.",
+    "debt.card": "Your card balance cost {card_interest}◈ in interest this season.",
+    "debt.loan": "Your loans cost {interest}◈ in interest this season.",
+    "debt.interest_free": "You owe {debt}◈, but none of it charged interest this season. It still has to be paid before you board.",
+    "debt.none": "You owe nothing. Every coin you earn is yours."
+  },
+  "money_in": {
+    "wages": "Wages",
+    "sales": "Sales",
+    "dividends": "Dividends",
+    "interest": "Vault interest",
+    "winnings": "Tavern winnings",
+    "business": "Business",
+    "windfalls": "Windfalls",
+    "other": "Other"
+  },
+  "money_out": {
+    "food": "Household kelp",
+    "market": "Grand Market",
+    "shares": "Shares bought",
+    "bills": "Tithe and bills",
+    "interest": "Interest",
+    "fees": "Late fees",
+    "wagers": "Tavern stakes",
+    "losses": "Stolen or lost",
+    "repairs": "Repairs",
+    "passage": "Passage",
+    "business": "Business",
+    "other": "Other"
+  },
+  "tides": {
+    "work": "Work",
+    "market": "Market",
+    "exchange": "Exchange",
+    "business": "Business",
+    "rested": "Rested",
+    "skipped": "Unused",
+    "care": "Care",
+    "hunger": "Hungry"
+  },
+  "chelo": {
+    "_note": "Chelo's note when the AI isn't available: one 'praise' line for the best A mark (if any), then one 'ask' line for the worst C or D mark (by mark, else by subject), else 'steady'.",
+    "praise": {
+      "pace.A": "You're ahead of the price of Passage, and very few in this city can say that.",
+      "debt.none": "You owe nobody a single coin, which makes you freer than most.",
+      "debt.interest_free": "What you owe costs you nothing for now, a rare kindness in Atlantis.",
+      "food.stocked": "Your cellar was full before anyone else thought to look.",
+      "safety.kept": "Your coin sat in the Vault, where no pickpocket could reach it.",
+      "tides.A": "Not one tide wasted. The sea notices that sort of thing."
+    },
+    "ask": {
+      "pace": "Passage will cost {passage}◈ next season. Where is the rest of it coming from?",
+      "tides": "{idle} tides went by with nothing to show for them. What would one more shift each season add up to?",
+      "food.hungry": "A hungry house loses tides, and tides are coin. What would a full cellar have cost you back in Summer?",
+      "food.card": "That kelp will cost more every season it sits on your card. Was it cheaper to buy it earlier?",
+      "food.dark_short": "Kelp costs about {dark_price}◈ in the Long Dark. How full will your cellar be when it comes?",
+      "safety.scam": "Somebody promised you 40% a season. Who do you think was really getting paid?",
+      "safety": "If a pickpocket found your Purse tomorrow, how much would they walk away with?",
+      "debt.reef": "Grin's fee grows by half every season. How many seasons can you afford to owe him?",
+      "debt.missed": "One missed payment costs more than its fee. How will the Bank remember this season?",
+      "debt": "What will that debt have cost you by the time the last ship calls?"
+    },
+    "steady": "A steady season. If the next one goes wrong, which of your choices still holds up?"
+  }
+}

@@ -3,7 +3,8 @@
  * engine, which uses the same files for the news and the Chronicle); this file only types them.
  * Edit the JSON, not this file.
  *
- * In-world terms only, except in the Modern Mirror (the ending), which names the real ideas.
+ * In-world terms only, except in the Modern Mirror (each room's, each season report's and the
+ * ending's), which names the real ideas.
  */
 
 import buildingsJson from "@content/buildings.json";
@@ -11,6 +12,8 @@ import classesJson from "@content/classes.json";
 import endingsJson from "@content/endings.json";
 import eventsJson from "@content/events.json";
 import marketJson from "@content/market.json";
+import mirrorJson from "@content/mirror.json";
+import onboardingJson from "@content/onboarding.json";
 import scrollsJson from "@content/scrolls.json";
 import type { BuildingId } from "../game/buildings";
 import type { ClassId } from "../types";
@@ -77,3 +80,23 @@ export const MIRROR = endingsJson.mirror as Record<string, string>;
 export const HOUSES: Record<string, string> = Object.fromEntries(Object.entries(marketJson.houses).map(([k, v]) => [k, v.name]));
 export const HOUSE_NOTES: Record<string, string> = Object.fromEntries(Object.entries(marketJson.houses).map(([k, v]) => [k, v.note]));
 export const GOODS = marketJson.goods as Record<string, { name: string; note: string }>;
+
+/** One line of the Modern Mirror: a thing in Atlantis, what it is in the real world, and why. */
+export interface MirrorPair {
+  here: string;
+  there: string;
+  text: string;
+}
+/** Each building's Modern Mirror, shown at the top of its room. */
+export const ROOM_MIRROR = mirrorJson.rooms as Record<BuildingId, MirrorPair[]>;
+
+/** A step of Chelo's first-time tour: a building (its words come from BUILDING_INFO) or part of the HUD. */
+export interface TourStep {
+  id: string;
+  building?: BuildingId;
+  hud?: "season" | "passage";
+  title?: string;
+  chelo: string;
+  lines?: string[];
+}
+export const TOUR = onboardingJson.steps as TourStep[];

@@ -10,11 +10,14 @@ export function Hud({
   ledger,
   onLedger,
   onScrolls,
+  onGuide,
 }: {
   run: Run;
   ledger?: Ledger | null;
   onLedger?: () => void;
   onScrolls?: () => void;
+  /** Replays Chelo's tour of the city. */
+  onGuide?: () => void;
 }) {
   const { state } = run;
   const view = viewOf(state);
@@ -24,6 +27,11 @@ export function Hud({
       <div className="hud__top-right">
         <Stats state={state} />
         <div className="hud__tabs">
+          {onGuide && (
+            <button className="chip chip--button" onClick={onGuide} title="Chelo's tour of the city">
+              Guide
+            </button>
+          )}
           <button className="chip chip--button" onClick={onScrolls}>
             Scrolls {view.scrolls?.length ?? 0}/{SCROLL_COUNT}
           </button>

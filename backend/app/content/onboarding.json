@@ -1,0 +1,85 @@
+{
+  "_note": "The first-time tour Chelo gives. A step with 'building' pans the city to it and shows that building's about / do / cost from buildings.json. A step with 'hud' points at part of the screen.",
+  "steps": [
+    {
+      "id": "welcome",
+      "title": "Welcome to Atlantis",
+      "chelo": "Before the tide turns, let me show you around. It won't take long.",
+      "lines": [
+        "Atlantis sinks at the end of the year. The last ship out sells Passage for coin, and only to people who owe nothing.",
+        "You have four seasons: Spring, Summer, Autumn and the Long Dark. Each one gives you six tides. A tide is one move.",
+        "Working, a Market trip and an Exchange visit spend tides. Walking, talking and banking are free."
+      ]
+    },
+    {
+      "id": "season",
+      "hud": "season",
+      "title": "Your season and tides",
+      "chelo": "Keep an eye on this. Tides run out faster than you'd think.",
+      "lines": [
+        "This shows the season and how many tides you have left.",
+        "When they run out the season ends, and you get a report on how it went."
+      ]
+    },
+    {
+      "id": "guild_hall",
+      "building": "guild_hall",
+      "chelo": "Most of your coin starts here. Six tides a season, so spend them on purpose."
+    },
+    {
+      "id": "market",
+      "building": "market",
+      "chelo": "Your household eats every season, whatever else you do. Plan for it."
+    },
+    {
+      "id": "bank",
+      "building": "bank",
+      "chelo": "Ione's desk. Nothing here costs a tide, so come as often as you like."
+    },
+    {
+      "id": "harbor",
+      "building": "harbor",
+      "chelo": "This is where you'll buy your way out. It's also where coin can grow, or sink."
+    },
+    {
+      "id": "drowned_bell",
+      "building": "drowned_bell",
+      "chelo": "Good for gossip, and Nerissa's games are fun. Just remember who wins in the end."
+    },
+    {
+      "id": "black_reef",
+      "building": "black_reef",
+      "chelo": "Grin always says yes. That's the trouble with Grin."
+    },
+    {
+      "id": "circle",
+      "building": "circle",
+      "chelo": "Old Maro's neighbours look after each other. Keep your promises to them."
+    },
+    {
+      "id": "council",
+      "building": "council",
+      "chelo": "When the Council speaks, prices move. Listen to the Herald."
+    },
+    {
+      "id": "passage",
+      "hud": "passage",
+      "title": "Passage on the last ship",
+      "chelo": "That number only goes up. Waiting is a choice too.",
+      "lines": [
+        "This is your goal: what Passage costs this season, and how close you are.",
+        "It rises every season. Coin that just sits there falls behind."
+      ]
+    },
+    {
+      "id": "go",
+      "title": "Off you go",
+      "chelo": "I'll find you at the end of each season with a report on how you did.",
+      "lines": [
+        "Click any building to walk there and go in. Click the ground to walk, drag to look around, scroll to zoom.",
+        "Not sure where to start? The Guild Hall pays, and the Market feeds you.",
+        "Every room has a Modern Mirror that shows what it's like in the real world. Press Guide at the top to see this tour again."
+      ]
+    }
+  ]
+}

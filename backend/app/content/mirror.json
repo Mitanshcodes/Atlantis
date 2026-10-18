@@ -1,0 +1,71 @@
+{
+  "_note": "The Modern Mirror: what each part of Atlantis is in the real world. 'rooms' shows in each building; 'topics' are the lessons a season report can pick (app/engine/report.py chooses which).",
+  "rooms": {
+    "bank": [
+      { "here": "Purse", "there": "Checking account", "text": "Money for everyday spending. It earns little or nothing, and if a thief gets your debit card, it's this money they drain." },
+      { "here": "Vault", "there": "Savings account", "text": "Pays interest and is protected: in the US, the FDIC insures bank deposits up to $250,000 if the bank fails. The catch is that savings interest often trails inflation." },
+      { "here": "Leviathan Credit", "there": "Credit card", "text": "7.5% a season is 30% a year. Average US card rates have sat above 20% a year, so a balance you carry grows fast." },
+      { "here": "Standing", "there": "Credit score", "text": "A FICO score runs 300 to 850, just like Standing. Paying on time is the biggest part of it (35%), then how much of your limit you use (30%)." },
+      { "here": "Secured card", "there": "Secured credit card", "text": "You put down a deposit and it becomes your limit. It's how people with no credit history, like newcomers to a country, start to build one." }
+    ],
+    "market": [
+      { "here": "Kelp", "there": "Groceries", "text": "Food is the bill you can't skip. Prices move with the seasons and with the news: US egg prices jumped in 2022 when bird flu hit the farms." },
+      { "here": "Pearls", "there": "Gold", "text": "Gold pays no interest and no dividend, but it has held its value through centuries of rising prices. People buy it as a store of value, not to get rich." },
+      { "here": "Your price nudges", "there": "Supply and demand", "text": "Buy a lot of something and you push its price up. Big investment funds buy slowly for exactly this reason." }
+    ],
+    "harbor": [
+      { "here": "Harbor Exchange", "there": "New York Stock Exchange", "text": "Where shares of companies are bought and sold. A share is a small piece of a company: when it does well, your piece is worth more." },
+      { "here": "Oro & Daughters", "there": "Blue-chip dividend stock", "text": "A big, steady company that pays you a slice of its profits. Coca-Cola has raised its dividend every year for more than 60 years." },
+      { "here": "Leviathan Line", "there": "High-growth stock", "text": "Big wins, big losses. Young tech companies can double in a year and halve the next." },
+      { "here": "Deepcoral Salvage", "there": "Penny stocks and lottery tickets", "text": "A rare jackpot, and a loss on average. A big possible win makes the bet feel better than it is." },
+      { "here": "The Tide Index", "there": "S&P 500 index fund", "text": "One purchase buys a little of the 500 biggest US companies, so one company's bad year barely dents it. Real index funds charge as little as 0.03% a year; the Tide Index's 1% a season would be steep." },
+      { "here": "The Long Dark panic", "there": "A market crash", "text": "The S&P 500 fell about 57% from 2007 to 2009, and 34% in a few weeks in 2020. People who had to sell then sold at the bottom." },
+      { "here": "Passage", "there": "A big goal, like a home down payment", "text": "It has to be paid in cash on the day. Shares that are worth enough on paper don't count until you've sold them." }
+    ],
+    "guild_hall": [
+      { "here": "A shift", "there": "Your paycheck", "text": "Steady, reliable, and slow. Wages usually rise a little each year, while big goals like a home can get dearer faster." },
+      { "here": "Tides", "there": "Your time", "text": "Time is a budget too. An hour spent one way can't be spent another: economists call that the opportunity cost." },
+      { "here": "Work alone never reaches Passage", "there": "Why people invest", "text": "Saving from wages alone rarely keeps up with rising prices. Money that earns its own return is what closes the gap." }
+    ],
+    "drowned_bell": [
+      { "here": "Nerissa's games", "there": "Casinos and lotteries", "text": "Every game is built to pay back less than it takes; that difference is the house edge. US state lotteries pay out roughly half to two-thirds of what they sell in prizes." },
+      { "here": "The Kraken's Wheel", "there": "Slot machines", "text": "A few big wins keep people playing. The wheel pays back 88 coins for every 100 staked, about what many slot machines do." },
+      { "here": "Tavern rumors", "there": "Stock tips online", "text": "In 2021 GameStop shares went from about $20 to over $400 on internet hype, then fell back. A tip that's right 7 times in 10 is still wrong 3 times." }
+    ],
+    "black_reef": [
+      { "here": "Grin", "there": "Payday lender", "text": "A typical two-week payday loan costs $15 for every $100 borrowed, close to 400% a year. Most borrowers end up renewing it rather than paying it off." },
+      { "here": "No Standing needed", "there": "No credit check", "text": "The easy yes is the trap. Lenders who don't check whether you can repay charge enough to profit when you can't." }
+    ],
+    "circle": [
+      { "here": "Old Maro's circle", "there": "Lending circle (ROSCA)", "text": "Neighbours pool money and take turns receiving the pot. They're called tandas in Mexico, susus in West Africa and the Caribbean, chit funds in India and hui in China." },
+      { "here": "Taking the pot early", "there": "An interest-free loan", "text": "You get the money now and pay it back over time, with no interest, just trust. Some US nonprofits even report circle payments to the credit bureaus, so they build a credit score." }
+    ],
+    "council": [
+      { "here": "Council of Ten", "there": "Central bank and government", "text": "In the US the Federal Reserve sets interest rates and aims to keep inflation near 2% a year. The government sets taxes." },
+      { "here": "The tithe", "there": "Taxes", "text": "A bill that comes every year whatever you earned. It has to be planned for." },
+      { "here": "Debasement", "there": "Inflation", "text": "Roman emperors cut the silver in their coins until the denarius was mostly bronze, and prices soared. US inflation hit 9.1% in 2022. Cash buys less; houses, shares and gold tend to rise with prices." }
+    ]
+  },
+  "topics": {
+    "payday_loan": { "name": "Payday loans", "text": "Grin is a payday lender. A typical two-week payday loan charges $15 per $100, close to 400% a year, and most borrowers renew it instead of paying it off. It's the costliest money there is." },
+    "ponzi": { "name": "Ponzi schemes", "text": "The Pearl Exchange paid nobody: early 'returns' come from later investors' money. Bernie Madoff ran one for decades and investors lost billions. A guaranteed high return is the clearest warning sign there is." },
+    "missed_payment": { "name": "Payment history", "text": "Paying on time is the biggest part of a credit score, about 35% of FICO. One payment 30 days late can stay on a credit report for seven years." },
+    "card_interest": { "name": "Credit card interest", "text": "Card interest compounds: next season you pay interest on this season's interest. US cards have averaged over 20% a year. Paying only the minimum can stretch a small balance over years." },
+    "card_fraud": { "name": "Disputing charges", "text": "Check your statement. In the US you can dispute a credit card billing error within 60 days, and most cards cover fraud in full. Debit card fraud protection shrinks the longer you wait to report it." },
+    "house_edge": { "name": "The house edge", "text": "Every casino game pays back less than it takes, on average. You can win a night; you can't win a year. US lotteries pay out roughly half to two-thirds of ticket sales in prizes." },
+    "cash_theft": { "name": "Keeping cash safe", "text": "Cash can be lost or stolen, and nobody gives it back. Money in a US bank is insured by the FDIC up to $250,000, which is why most people keep only what they'll spend soon in their wallet." },
+    "inflation": { "name": "Inflation", "text": "The debasement made every price jump while your coin stayed the same. That's inflation: US prices rose 9.1% in the year to June 2022. Cash loses value, while assets like homes, shares and gold tend to rise with prices." },
+    "emergency_fund": { "name": "Emergency funds", "text": "Roofs leak when they want to. In a 2023 Federal Reserve survey, more than a third of US adults said they couldn't cover a $400 surprise with cash. Planners suggest keeping three to six months of costs saved." },
+    "lottery": { "name": "Lottery stocks", "text": "Deepcoral wins rarely and loses on average, like penny stocks. People overpay for a small chance at a big win, which is exactly why the bet is bad." },
+    "index_fund": { "name": "Index funds", "text": "The Tide Index is like an S&P 500 index fund: one purchase spreads your money over many companies, so one bad voyage barely matters. Real ones charge as little as 0.03% a year." },
+    "diversify": { "name": "Diversification", "text": "All your shares rode on one house. When Enron collapsed in 2001, many of its workers lost their jobs and their retirement savings at once, because both were in Enron." },
+    "dividends": { "name": "Dividends", "text": "Some companies pay shareholders part of their profits, as Oro & Daughters does after a good voyage. Reinvested over years, dividends make up a large share of what the stock market returns." },
+    "rosca": { "name": "Lending circles", "text": "Old Maro's circle is a ROSCA: tandas, susus, chit funds, hui. Millions of people use them worldwide to save and borrow without a bank, and some US nonprofits report the payments to credit bureaus." },
+    "seasonal_prices": { "name": "Buying ahead", "text": "You bought kelp before it got dear. Buying food in season, or in bulk when it's cheap, is one of the simplest ways households stretch a budget." },
+    "opportunity_cost": { "name": "Opportunity cost", "text": "An unused tide isn't free; it costs the shift you didn't work. Economists call the value of the best thing you gave up the opportunity cost." },
+    "credit_score": { "name": "Credit scores", "text": "Standing works like a FICO score: on-time payments matter most, then using little of your limit (under 30% is the usual advice), then how long you've had accounts. Building it takes time." },
+    "savings_rate": { "name": "Savings and inflation", "text": "Your Vault earned interest, but less than Passage rose. Savings accounts often trail inflation: for most of the 2010s the average US savings account paid under 0.1% a year while prices rose about 2%." },
+    "news_shock": { "name": "News moves markets", "text": "When the Ever Given got stuck in the Suez Canal in 2021, it held up billions of dollars of trade a day and shipping prices leapt. Surprises like that are why no single bet is safe." },
+    "real_return": { "name": "Real returns", "text": "What counts is how much faster your money grows than prices. Earn 5% while prices rise 3% and you're only 2% better off. Passage rising every season is the inflation you're racing." }
+  }
+}

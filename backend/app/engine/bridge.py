@@ -17,6 +17,8 @@ The money itself always moves.
 
 from __future__ import annotations
 
+import copy
+import dataclasses
 import json
 from enum import Enum
 from functools import lru_cache
@@ -24,7 +26,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 from app import config
-from app.engine import exchange, game, market, money, scrolls
+from app.engine import exchange, game, market, money, report, scrolls
 from app.engine.actions import (
     ActionError,
     BlackReefAdvance,
@@ -53,7 +55,7 @@ from app.engine.actions import (
     Withdraw,
     Work,
 )
-from app.engine.serialize import from_data, to_data
+from app.engine.serialize import decode, from_data, to_data
 from app.engine.state import (
     SEASONS,
     Account,
@@ -132,6 +134,7 @@ def new_game(class_id: str, seed: int) -> Transition:
         raise ValueError(f"Unknown class: {class_id}")
     s = game.new_game(CLASS_IDS[class_id], seed)
     memory: Dict[str, Any] = {"loan_names": {}, "loan_count": 0}
+    _keep_season(s, memory)
     effects = _effects(None, s, prefix="start", memory=memory)
     return Transition(state=_snapshot(s, 0, class_id, memory), events=describe(s.log), effects=effects)
 
@@ -142,19 +145,121 @@ def apply_action(state: State, action: Action) -> Transition:
         raise ValueError("This run has no engine state; start a new journey")
     before = from_data(engine)
     s = from_data(engine)
-    memory = dict(state.details.get("bridge") or {"loan_names": {}, "loan_count": 0})
-    memory["loan_names"] = dict(memory.get("loan_names", {}))
+    memory = copy.deepcopy(state.details.get("bridge") or {"loan_names": {}, "loan_count": 0})
+    memory.setdefault("loan_names", {})
     try:
         for engine_action in translate(action, s):
             game.step(s, engine_action)
     except ActionError as exc:
         raise ValueError(exc.message) from None
+    _keep_season(s, memory)
     effects = _effects(before, s, prefix=action.action_id, memory=memory)
     return Transition(
         state=_snapshot(s, state.version + 1, state.class_id, memory),
         events=describe(s.log),
         effects=effects,
     )
+
+
+# --- Season reports -------------------------------------------------------------------------------
+
+
+def _plain(items: Sequence[Any]) -> List[Dict[str, Any]]:
+    return json.loads(json.dumps([dataclasses.asdict(x) for x in items]))
+
+
+def _keep_season(s: GameState, memory: Dict[str, Any]) -> None:
+    """The stored engine state drops its log after every move, so the bridge keeps the current
+    season's log and ledger itself. When a season ends, its report is worked out and kept."""
+    book = memory.setdefault("season_book", {"log": [], "ledger": []})
+    book["log"] += _plain(s.log)
+    book["ledger"] += _plain(s.ledger)
+    ended = [e.season for e in s.log if e.kind == "season_end"]
+    if not ended:
+        return
+    reports = memory.setdefault("reports", {})
+    for season in ended:
+        past = s.clone()
+        # The season, plus the next one's opening (its Passage price, debasement included).
+        past.log = [decode(LogEvent, d) for d in book["log"]
+                    if d["season"] == season or (d["season"] == season + 1 and d["kind"] == "season_open")]
+        past.ledger = [decode(LedgerEntry, d) for d in book["ledger"] if d["season"] == season]
+        reports[str(season)] = json.loads(json.dumps(report.season_report(past, season)))
+    last = max(ended)
+    book["log"] = [d for d in book["log"] if d["season"] > last]
+    book["ledger"] = [d for d in book["ledger"] if d["season"] > last]
+
+
+def _fill(template: str, params: Dict[str, Any]) -> str:
+    def show(v: Any) -> Any:
+        return "" if v is None else f"{v:,}" if isinstance(v, int) and not isinstance(v, bool) else v
+    return template.format(**{k: show(v) for k, v in params.items()})
+
+
+GRADE_ORDER = "DCBA"
+
+
+def _chelo(marks: List[Dict[str, Any]], lines: Dict[str, Any]) -> str:
+    """Chelo's hand-written note: praise for the best thing, a question about the worst."""
+    by_why = {m["why"]: m for m in marks}
+    praise = next((line for why, line in lines["praise"].items() if why in by_why), "")
+    worst = min(marks, key=lambda m: GRADE_ORDER.index(m["grade"]))
+    if worst["grade"] not in "CD":
+        return " ".join(filter(None, [praise, lines["steady"]]))
+    ask = lines["ask"].get(worst["why"]) or lines["ask"][worst["subject"]]
+    return " ".join(filter(None, [praise, _fill(ask, worst["params"])]))
+
+
+def season_report(state: State, season: str) -> Dict[str, Any]:
+    """The report card for a finished season, in words from content/report.json and
+    content/mirror.json. Money here is in whole coin. Raises LookupError if there's none."""
+    index = next((i for i, s in enumerate(SEASONS) if SEASON_NAMES[s] == season), None)
+    facts = ((state.details.get("bridge") or {}).get("reports") or {}).get(str(index))
+    if facts is None:
+        raise LookupError("No report for that season.")
+    words, mirror, houses = content("report"), content("mirror"), content("market")["houses"]
+    marks = [
+        {"subject": m["subject"], "label": words["subjects"][m["subject"]], "grade": m["grade"],
+         "text": _fill(words["marks"][m["why"]], m["params"])}
+        for m in facts["marks"]
+    ]
+    t = facts["tides"]
+    tides = [
+        {"use": use, "label": words["tides"][use], "count": t[use]}
+        for use in ("work", "market", "exchange", "business", "rested", "skipped", "care", "hunger")
+        if t[use]
+    ]
+    money_words = {"in": words["money_in"], "out": words["money_out"]}
+    flow = facts["money"]
+    inv = facts["investments"]
+    return {
+        "season": season,
+        "season_index": index,
+        "next_season": SEASON_NAMES[SEASONS[index + 1]],
+        "class_id": state.class_id,
+        "pace": facts["pace"],
+        "target": round(config.REPORT_PACE_TARGETS[index] * 100),
+        "marks": marks,
+        "tides": {"total": t["total"], "uses": tides, "free_trips": t["free_trips"], "wages": t["wages"]},
+        "money": {
+            side: [{"category": r["category"], "label": money_words[side].get(r["category"], r["category"]),
+                    "amount": r["amount"]} for r in flow[side]]
+            for side in ("in", "out")
+        } | {k: flow[k] for k in ("total_in", "total_out", "saved", "debt_paid", "borrowed")},
+        "investments": {
+            "rows": [dict(r, name=houses.get(r["house"], {}).get("name", r["house"])) for r in inv["rows"]],
+            "dividends": inv["dividends"],
+            "index_change": inv["index_change"],
+            "pearls": inv["pearls"],
+        },
+        "standing": facts["standing"],
+        "shock": facts["shock"],
+        "events": facts["events"],
+        "scrolls": facts["scrolls"],
+        "mirror": [dict(mirror["topics"][topic], topic=topic) for topic in facts["topics"]],
+        "chelo": _chelo(facts["marks"], words["chelo"]),
+        "facts": facts,
+    }
 
 
 # --- Actions --------------------------------------------------------------------------------------

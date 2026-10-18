@@ -26,6 +26,11 @@ def from_data(data: Dict[str, Any]) -> GameState:
     return _decode(GameState, data)
 
 
+def decode(cls: type, data: Any) -> Any:
+    """Rebuild one engine dataclass (a LogEvent, a LedgerEntry) from its plain data."""
+    return _decode(cls, data)
+
+
 @lru_cache(maxsize=None)
 def _hints(cls: type) -> Dict[str, Any]:
     return typing.get_type_hints(cls, vars(state_module))

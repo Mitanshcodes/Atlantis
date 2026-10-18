@@ -8,7 +8,7 @@ import { useEffect, useId, useState, type ReactNode } from "react";
 import type { Building } from "../../game/buildings";
 import type { ActionInput } from "../../store";
 import type { Order, Run } from "../../types";
-import { BUILDING_INFO, SHOCKS } from "../copy";
+import { BUILDING_INFO, ROOM_MIRROR, SHOCKS } from "../copy";
 import { coins, fmt, toMinor, viewOf, type GameView } from "../view";
 
 export interface RoomProps {
@@ -53,7 +53,8 @@ export function Room({
           </button>
         </header>
         <div className="room__body">
-          <Intro building={building} tide={tide} />
+          <Mirror building={building} />
+          <HowItWorks building={building} tide={tide} />
           {children}
         </div>
       </section>
@@ -61,20 +62,58 @@ export function Room({
   );
 }
 
-/** What this place is, what you can do here, and what it costs: plain words, no riddles. */
-function Intro({ building, tide }: { building: Building; tide?: ReactNode }) {
+/** How many Modern Mirror lines show before "Show more". */
+const MIRROR_SHOWN = 3;
+
+/** The Modern Mirror: what this place and the things in it are in the real world. */
+function Mirror({ building }: { building: Building }) {
+  const [all, setAll] = useState(false);
+  const pairs = ROOM_MIRROR[building.id] ?? [];
+  if (!pairs.length) return null;
+  const shown = all ? pairs : pairs.slice(0, MIRROR_SHOWN);
+  return (
+    <section className="mirror" aria-label="Modern Mirror">
+      <p className="mirror__eyebrow">Modern Mirror · in the real world</p>
+      <dl className="mirror__pairs">
+        {shown.map((p) => (
+          <div key={p.here} className="mirror__pair">
+            <dt>
+              <span className="mirror__here">{p.here}</span>
+              <span className="mirror__is" aria-label="is like">
+                ≈
+              </span>
+              <span className="mirror__there">{p.there}</span>
+            </dt>
+            <dd>{p.text}</dd>
+          </div>
+        ))}
+      </dl>
+      {pairs.length > MIRROR_SHOWN && (
+        <button type="button" className="mirror__more" onClick={() => setAll(!all)}>
+          {all ? "Show less" : `Show ${pairs.length - MIRROR_SHOWN} more`}
+        </button>
+      )}
+    </section>
+  );
+}
+
+/** What a visit costs, and the plain rules of the place (the tour's words) folded away. */
+function HowItWorks({ building, tide }: { building: Building; tide?: ReactNode }) {
   const info = BUILDING_INFO[building.id];
   if (!info) return null;
   return (
-    <section className="room-intro">
-      <p className="room-intro__about">{info.about}</p>
-      <ul className="room-intro__list">
+    <details className="room-how">
+      <summary>
+        <span>How this place works</span>
+        <span className="room-how__cost">{tide ?? info.cost}</span>
+      </summary>
+      <p className="room-how__about">{info.about}</p>
+      <ul className="room-how__list">
         {info.do.map((line) => (
           <li key={line}>{line}</li>
         ))}
       </ul>
-      <p className="room-intro__cost">{tide ?? info.cost}</p>
-    </section>
+    </details>
   );
 }
 

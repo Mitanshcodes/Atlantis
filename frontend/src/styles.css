@@ -1308,35 +1308,109 @@ body,
 
 /* --- Room explanations, market news, and the Drowned Bell's games --------------------------- */
 
-.room-intro {
+/* The Modern Mirror at the top of every room: Atlantis ≈ the real world. */
+.mirror {
   margin: 10px 0 4px;
-  padding: 12px 14px;
+  padding: 12px 14px 10px;
+  color: #3a2a14;
+  background: #ecd9ae;
+  border: 3px solid #3a2a10;
+  box-shadow: inset 0 0 24px rgba(120, 80, 30, 0.22), 3px 3px 0 rgba(7, 20, 28, 0.6);
+}
+
+.mirror__eyebrow {
+  margin: 0 0 8px;
+  font-family: var(--font-plate);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #6a4a1a;
+}
+
+.mirror__pairs {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+}
+
+.mirror__pair dt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.mirror__here {
+  color: #1e3a58;
+}
+
+.mirror__is {
+  color: #8a6a2a;
+}
+
+.mirror__there {
+  color: #7a2a14;
+}
+
+.mirror__pair dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.mirror__more {
+  margin-top: 8px;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  color: #1e3a58;
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: var(--cursor-hover, pointer);
+}
+
+.room-how {
+  margin: 8px 0 4px;
+  padding: 8px 14px;
   background: rgba(7, 20, 28, 0.55);
   border-left: 4px solid var(--sea);
 }
 
-.room-intro__about {
-  margin: 0 0 6px;
+.room-how summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-size: 15px;
+  color: var(--foam);
+  cursor: var(--cursor-hover, pointer);
+}
+
+.room-how__cost {
+  color: var(--marble-dim);
+}
+
+.room-how__about {
+  margin: 8px 0 6px;
   font-size: 16px;
   line-height: 1.4;
 }
 
-.room-intro__list {
-  margin: 0;
+.room-how__list {
+  margin: 0 0 4px;
   padding-left: 20px;
   font-size: 15px;
   line-height: 1.45;
   color: var(--marble-dim);
 }
 
-.room-intro__list li + li {
+.room-how__list li + li {
   margin-top: 3px;
-}
-
-.room-intro__cost {
-  margin: 8px 0 0;
-  font-size: 14px;
-  color: var(--foam);
 }
 
 .shock-banner {
@@ -1637,4 +1711,560 @@ body,
   line-height: 1.4;
   background: rgba(7, 20, 28, 0.55);
   border-left: 3px solid var(--gold);
+}
+
+/* --- Chelo's tour ------------------------------------------------------------------------------ */
+
+.tour {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--gap);
+  background: rgba(7, 20, 28, 0.35);
+}
+
+/* A spotlight on the building the camera glided to; the city says where it is on screen. */
+.tour--building {
+  background: radial-gradient(ellipse 280px 230px at var(--spot-x) var(--spot-y), transparent 55%, rgba(7, 20, 28, 0.62) 100%);
+}
+
+/* While the tour shows a building, the HUD steps aside so edge buildings aren't hidden under it. */
+.hud > * {
+  transition: opacity 0.3s;
+}
+
+.app:has(.tour--building) .hud > * {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tour[data-hud] {
+  background: rgba(7, 20, 28, 0.2);
+}
+
+.tour[data-hud="passage"] {
+  align-items: flex-start;
+  padding-top: 110px;
+}
+
+.app:has(.tour[data-hud="season"]) .hud__season,
+.app:has(.tour[data-hud="passage"]) .hud__passage {
+  z-index: 26;
+  outline: 3px solid var(--gold-light);
+  outline-offset: 4px;
+  animation: tour-pulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes tour-pulse {
+  to {
+    outline-color: rgba(242, 205, 110, 0.35);
+    outline-offset: 8px;
+  }
+}
+
+.tour__panel {
+  display: flex;
+  gap: 18px;
+  align-items: flex-end;
+  width: min(940px, 100%);
+  max-height: calc(100vh - 2 * var(--gap));
+  padding: 14px 20px 12px;
+  overflow-y: auto;
+}
+
+.tour__guide {
+  flex: none;
+  align-self: center;
+}
+
+.tour__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tour__body .chelo-says {
+  min-height: 0;
+  margin-bottom: 8px;
+  padding: 8px 14px;
+}
+
+.tour__eyebrow {
+  margin: 0;
+  font-family: var(--font-plate);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--foam);
+}
+
+.tour__title {
+  margin: 2px 0 6px;
+  font-family: var(--font-title);
+  font-size: 24px;
+  color: var(--gold-light);
+}
+
+.tour__about {
+  margin: 0 0 6px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.tour__lines {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--marble-dim);
+}
+
+.tour__lines li + li {
+  margin-top: 3px;
+}
+
+.tour__cost {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--foam);
+}
+
+.tour__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.tour__steps {
+  display: flex;
+  gap: 8px;
+}
+
+.tour__pips {
+  display: flex;
+  gap: 5px;
+}
+
+.tour__pips i {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--gold-dark);
+}
+
+.tour__pips i.is-done {
+  background: var(--gold-dark);
+}
+
+.tour__pips i.is-now {
+  background: var(--gold-light);
+  border-color: var(--gold-light);
+}
+
+@media (max-width: 640px) {
+  .tour__guide,
+  .tour__pips {
+    display: none;
+  }
+}
+
+/* --- The season report, on a scroll ------------------------------------------------------------- */
+
+.report-backdrop {
+  overflow-y: auto;
+}
+
+.scroll-sheet.report {
+  width: min(820px, calc(100% - 64px));
+  margin: auto;
+}
+
+.report__paper {
+  padding: 30px 14px 30px 40px;
+  text-align: left;
+}
+
+/* The paper keeps its Greek-key border still; the writing scrolls inside it. */
+.report__scroll {
+  max-height: calc(100vh - 200px);
+  padding-right: 26px;
+  overflow-y: auto;
+}
+
+.report .num {
+  color: inherit;
+}
+
+.report__paper .scroll-sheet__eyebrow,
+.report__paper .scroll-sheet__title {
+  text-align: center;
+}
+
+.report__wait {
+  text-align: center;
+  font-size: 17px;
+}
+
+.report__section {
+  margin: 18px 0 0;
+}
+
+.report__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 0 0 8px;
+  padding-bottom: 4px;
+  font-family: var(--font-title);
+  font-size: 19px;
+  color: #3a2410;
+  border-bottom: 2px solid #b89a60;
+}
+
+.report__heading-note {
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  font-weight: 400;
+  color: #6a4a1a;
+}
+
+.report__small {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #5a4220;
+}
+
+.report__pace {
+  padding: 12px 14px;
+  background: rgba(255, 245, 215, 0.45);
+  border: 2px solid #b89a60;
+}
+
+.report__pace-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.report__pace-big {
+  font-family: var(--font-title);
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  color: #1e3a58;
+}
+
+.report__pace-words {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.report__bar {
+  position: relative;
+  height: 16px;
+  margin: 14px 0 22px;
+  background: rgba(58, 42, 16, 0.15);
+  border: 2px solid #3a2a10;
+}
+
+.report__bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: repeating-linear-gradient(90deg, #1e3a58 0 10px, #24476b 10px 12px);
+}
+
+.report__bar-target {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 3px;
+  background: #a8201a;
+}
+
+.report__bar-target i {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-style: normal;
+  white-space: nowrap;
+  color: #a8201a;
+}
+
+.report__marks {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report__marks li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.report__stamp {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  font-family: var(--font-title);
+  font-size: 22px;
+  font-weight: 700;
+  border: 3px double currentColor;
+  border-radius: 50%;
+  transform: rotate(-8deg);
+}
+
+.report__stamp--A {
+  color: #3f6b2a;
+}
+
+.report__stamp--B {
+  color: #1e5a78;
+}
+
+.report__stamp--C {
+  color: #9a6a10;
+}
+
+.report__stamp--D {
+  color: #a8201a;
+}
+
+.report__mark-label {
+  display: block;
+  font-family: var(--font-title);
+  font-size: 15px;
+  color: #3a2410;
+}
+
+.report__mark-text {
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.report__tides {
+  display: flex;
+  gap: 6px;
+}
+
+.report__tide {
+  display: inline-block;
+  width: 34px;
+  height: 34px;
+  border: 3px solid #3a2a10;
+  background: #ecd9ae;
+}
+
+.report__legend .report__tide {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  vertical-align: -2px;
+  margin-right: 5px;
+}
+
+.report__tide--work {
+  background: #1e3a58;
+}
+
+.report__tide--market {
+  background: #7c9f57;
+}
+
+.report__tide--exchange {
+  background: #d9a84c;
+}
+
+.report__tide--business {
+  background: #8a5a9a;
+}
+
+.report__tide--rested,
+.report__tide--skipped {
+  background: repeating-linear-gradient(45deg, #ecd9ae 0 4px, #c9b080 4px 7px);
+}
+
+.report__tide--care {
+  background: #c97a5a;
+}
+
+.report__tide--hunger {
+  background: #a8201a;
+}
+
+.report__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 8px 0 0;
+  padding: 0;
+  font-size: 14px;
+  list-style: none;
+}
+
+.report__money {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.report__ledger-title {
+  margin: 0 0 4px;
+  font-family: var(--font-plate);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #6a4a1a;
+}
+
+.report__ledger dl {
+  margin: 0;
+}
+
+.report__ledger dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 15px;
+  border-bottom: 1px dotted #b89a60;
+}
+
+.report__ledger dd {
+  margin: 0;
+}
+
+.report__ledger .report__ledger-total {
+  font-weight: 700;
+  border-bottom: 0;
+}
+
+.report__shares {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.report__shares th,
+.report__shares td {
+  padding: 4px 6px;
+  text-align: right;
+  border-bottom: 1px dotted #b89a60;
+}
+
+.report__shares th:first-child,
+.report__shares thead th:first-child {
+  text-align: left;
+}
+
+.report__shares thead th {
+  font-family: var(--font-plate);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6a4a1a;
+}
+
+.report__up {
+  color: #3f6b2a;
+}
+
+.report__down {
+  color: #a8201a;
+}
+
+.report__chelo {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin: 20px 0 0;
+  padding: 12px 16px;
+  color: var(--marble);
+  background: var(--navy);
+  border: 3px solid #3a2a10;
+}
+
+.report__chelo-name {
+  margin: 0 0 4px;
+  font-family: var(--font-plate);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--foam);
+}
+
+.report__chelo-text {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.report__mirror {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  background: rgba(30, 58, 88, 0.08);
+  border: 2px dashed #1e3a58;
+}
+
+.report__mirror-item + .report__mirror-item {
+  margin-top: 10px;
+}
+
+.report__mirror-item h4 {
+  margin: 0 0 2px;
+  font-family: var(--font-title);
+  font-size: 16px;
+  color: #7a2a14;
+}
+
+.report__mirror-item p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.report__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 22px 0 8px;
+  font-size: 15px;
+}
+
+@media (max-width: 640px) {
+  .scroll-sheet.report {
+    width: calc(100% - 32px);
+  }
+
+  .report__paper {
+    padding: 26px 8px 26px 16px;
+  }
+
+  .report__scroll {
+    padding-right: 8px;
+  }
+
+  .report__money {
+    grid-template-columns: 1fr;
+  }
+
+  .report__tide {
+    width: 26px;
+    height: 26px;
+  }
 }

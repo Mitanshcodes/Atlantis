@@ -57,6 +57,7 @@ Atlantis/
 │   │   │   ├── business.py            [P1]  businesses (only if ahead)
 │   │   │   ├── scrolls.py             [P1]  Scrolls, endings
 │   │   │   ├── serialize.py           [P1]  GameState <-> JSON
+│   │   │   ├── report.py              [P1]  season report facts, marks, Mirror topics
 │   │   │   └── bridge.py              [P1]  the engine behind P2's API contract
 │   │   ├── nessie/                    [P2]
 │   │   │   ├── client.py              [P2]  Nessie HTTP (GET/POST/PUT, retries)
@@ -66,7 +67,8 @@ Atlantis/
 │   │   │   ├── probe.py               [P2]  opt-in live capability probe
 │   │   │   └── test_integration.py    [P2]  P2's tests (dev fixture, mock Nessie)
 │   │   ├── ai/                        [P2]
-│   │   │   └── chronicle.py           [P2]  Gemini Chronicle
+│   │   │   ├── chronicle.py           [P2]  Gemini Chronicle (endpoint only; the UI shows the report)
+│   │   │   └── report.py              [P2]  Chelo's note on the season report (OpenAI, checked)
 │   │   └── content/                   [M]   all writing
 │   │       ├── classes.json           [M]
 │   │       ├── events.json            [M]
@@ -108,7 +110,8 @@ Atlantis/
             ├── Hud.tsx                [P3]
             ├── Dialogue.tsx           [P3]
             ├── EventCard.tsx          [P3]
-            ├── Chronicle.tsx          [P3]
+            ├── ReportCard.tsx         [P3]  the season report on a scroll
+            ├── Tour.tsx               [P3]  Chelo's first-time tour
             ├── Scrolls.tsx            [P3]
             ├── Ending.tsx             [P3]
             └── panels/                [P2]
@@ -120,7 +123,7 @@ Atlantis/
 
 The Python packages (`app/`, `engine/`, `nessie/`, `ai/`) also have empty `__init__.py` files, owned by whoever owns the folder. Empty asset folders hold a `.gitkeep`.
 
-**How the layers fit:** the frontend sends an action → `main.py` validates it against `models.py` → `engine/bridge.py` runs the engine (pure, seeded) → the resulting money effects are queued and `nessie/sync.py` delivers them to Nessie (POST, then GET to confirm) → the new state goes back to the frontend → `store.ts` updates and React re-renders. `ai/chronicle.py` turns the engine's event log into prose at season end, falling back to a template. Details in "Running the whole game".
+**How the layers fit:** the frontend sends an action → `main.py` validates it against `models.py` → `engine/bridge.py` runs the engine (pure, seeded) → the resulting money effects are queued and `nessie/sync.py` delivers them to Nessie (POST, then GET to confirm) → the new state goes back to the frontend → `store.ts` updates and React re-renders. At each season's end the bridge files a **season report** from the engine's log; `ai/report.py` adds Chelo's short note (OpenAI, checked, or a hand-written line). Details in "Running the whole game" and "The season report".
 
 ## Work split and milestones
 
@@ -138,11 +141,11 @@ The Python packages (`app/`, `engine/`, `nessie/`, `ai/`) also have empty `__ini
 1. **The engine is deterministic and made of pure functions.** Given the same seed, state and actions, it produces the same result. It owns every number: prices, rolls, events, Standing, interest.
 2. **Nessie (Capital One's mock banking API) is the money layer.** Every coin movement is a real Nessie call: accounts, deposits, purchases, bills, transfers, loans, withdrawals. The engine decides the *rules*; Nessie records the *money*.
 3. **Cache Nessie responses locally** so the game keeps working if the API lags or fails.
-4. **Gemini only writes words.** It may write each season's Chronicle from the engine's event log, and answer "why did this happen?" using only facts the engine passes in. It may **not** set prices, roll outcomes, change Standing, or tell the player what to choose. (The Oracle asks questions; it never decides.) If Gemini fails or is slow, a **template Chronicle** fills in.
+4. **AI only writes words.** OpenAI writes Chelo's note on each season report from facts the engine passes in (Gemini's Chronicle endpoint still exists but the UI no longer shows it). AI may **not** set prices, roll outcomes, change Standing, or tell the player what to choose. (The Oracle asks questions; it never decides.) If the AI fails, is slow, or breaks a writing rule, a **hand-written line** fills in.
 5. **Every tunable number lives in one config file.** Nothing in this doc gets hardcoded elsewhere. Playtesting should only ever touch config.
 6. **Seeded RNG everywhere.** A fixed **judge-mode seed** gives a reliable demo run.
 7. **Build scope:** core systems first. Anything marked *(only if ahead)* waits until the core loop works end to end.
-8. **Teach by consequence.** Real-world finance terms (credit score, APR, inflation, etc.) appear **only in the Modern Mirror** at the end. In-game everything uses world terms (Standing, Leviathan Credit, Vault, ◈).
+8. **Teach by consequence.** Real-world finance terms (credit score, APR, inflation, etc.) appear **only in the Modern Mirror**: at the top of each room, at the foot of each season report, and at the end. Everywhere else uses world terms (Standing, Leviathan Credit, Vault, ◈).
 9. Classes are **never labeled by identity**; any class can look like anything.
 
 ## Glossary (in-world term → real concept → Nessie)
@@ -317,7 +320,7 @@ Earnings use the **base** price (player can't pump them). Long Dark profit pays 
 
 ## Feedback and endings
 
-Players learn from three things: **Scrolls** earned by doing, an in-world **Chronicle** each season (a story, not a report card), and the **Modern Mirror** at the end (the only place real-world terms appear).
+Players learn from four things: **Scrolls** earned by doing, a **season report** at each season's end (marks, where the tides and coin went, how the shares did, Chelo's note), and the **Modern Mirror** in every room, every report and the ending (the only places real-world terms appear).
 
 **The 12 Scrolls** (unlock for good *and* bad play, so losing still teaches):
 
@@ -417,10 +420,21 @@ Every player-facing line lives in `backend/app/content/*.json`, shared by the en
 | `market.json` | Names and notes for goods and shipping houses |
 | `scenarios.json` | The clue lines for the year scenarios and the debasement |
 | `npcs.json` | Pointer only: the townsfolk's street talk is in `frontend/src/ui/npcTalk.ts` |
+| `onboarding.json` | Chelo's first-time tour: intro and HUD steps; building steps reuse `buildings.json` |
+| `mirror.json` | The Modern Mirror: each room's real-world pairs (Harbor Exchange ≈ NYSE, Tide Index ≈ S&P 500 fund…) and the report topics |
+| `report.json` | The season report's subjects, mark sentences, money and tide labels, Chelo's hand-written notes |
 
 **Market shocks:** one unexpected market event every season, at a random tide, never repeated in a year (`config.MARKET_SHOCKS` holds the effects; `events.json` the words, under the same ids; a test checks they match).
 
 **The Drowned Bell:** Nerissa deals three games a season (`config.GAMES`): the shell game (1 in 3, pays 2.5×) and the Kraken's Wheel (pays back 88%). Stakes 5–100◈ from the Purse, no tide. Every game pays back less than it takes; losing 100◈ over the year earns *The House Always Wins*.
+
+## The season report
+
+At the end of Spring, Summer and Autumn the player gets a report card on a scroll (`ui/ReportCard.tsx`):
+
+- **How it's built:** the engine records a `snapshot` (worth, prices, holdings, Passage) when each season opens and ends, and a `trip` event for every Market/Exchange visit (free or paid). The stored engine state drops its log after every move, so `bridge._keep_season` keeps the current season's log and ledger in `details.bridge.season_book`, and when a season ends runs `engine/report.py season_report` and stores the facts in `details.bridge.reports` (server-only). `GET /api/runs/{id}/report?season=Spring` renders them with words from `report.json` and `mirror.json`. **Money in the report is whole coin**, unlike the rest of the API.
+- **What it shows:** on course for Passage (worth as a share of next season's Passage vs `config.REPORT_PACE_TARGETS`), five marks A–D (on course, use of tides, feeding the household, keeping coin safe, debt), tides as boxes, coin in and out by category, each house held (worth, price move, voyage), Chelo's note, and up to three Modern Mirror topics chosen by what happened (`report._topics`, most pressing first). Thresholds are in `config.REPORT_*`.
+- **Chelo's note** (`ai/report.py`, `GET /report/note`): OpenAI (`OPENAI_API_KEY`, `OPENAI_MODEL`, default `gpt-4.1-mini`) writes 40–75 words from a brief of the report's facts, in Chelo's voice, with a banned-phrase list and a few-shot example. Every reply is checked: banned words and punctuation (em dashes, semicolons, "journey", "delve"…), length, and **every number must appear in the facts**. Two failures, or any API error, fall back to the hand-written note (praise for the best mark + a question about the worst, from `report.json`). Only OpenAI notes are cached. Tests blank `OPENAI_API_KEY` in `conftest.py`.
 
 ## The game loop in the browser (integrated)
 
@@ -429,10 +443,12 @@ Every player-facing line lives in `backend/app/content/*.json`, shared by the en
 - **Opening** (`ui/opening/`, from the design refs): title (New Voyage / Continue / How to Play; Enter starts), step 1 "Who are you?" (name, 8 looks × 4 robes), step 2 "Where does {name} start?" (the four classes in their workplace scenes), step 3 the story scroll with Chelo narrating, then Set sail creates the run. Art in `public/assets/opening/` (title scene + ship layer, avatar atlases, class scenes); Chelo is drawn in code (`ui/opening/art.tsx`). Every page load opens on the title; Continue resumes. A new run gets a random seed; `?seed=N` pins one (judge demo).
 - **Profile** (`game/profile.ts`): name, look and robe in localStorage. The city draws the player with the chosen avatar (24×36 atlas frames, facing by direction); the Chronicle and ending use the name. Looks never touch the numbers.
 - **Buildings:** clicking one hops the player there; `building-entered` opens `ui/rooms/` for it: Bank (Purse/Vault, card, loans, bills, Standing), Grand Market and Harbor Exchange (one-visit baskets, Passage), Guild Hall (work, rest, end season), Drowned Bell, Black Reef, Lending Circle, Council. Rooms only offer `available_actions`; the engine decides. Entering the tavern or the Black Reef sends `visit` (the event deck notices).
-- **After each move:** `details.moments` (from the bridge) queue as `ui/EventCard.tsx` cards (events with choices: dispute fraud, walk away from the Pearl Exchange, go to Grin) and, where a season ended, `ui/Chronicle.tsx` (text from `GET /chronicle`; Gemini if `GEMINI_API_KEY`/`GEMINI_MODEL` are set, else P2's template). Order is preserved: the old season's cards, its Chronicle, then what opened the new one.
+- **Tour:** after the first Set sail (once per browser, `localStorage atlantis.toured`) `ui/Tour.tsx` has Chelo walk through the city: the camera glides to each building (`tour-focus` on the EventBus; the city answers with `tour-spot` so the spotlight finds it even where the camera can't centre it), then the season panel and the Passage meter. The HUD's Guide button replays it.
+- **Rooms** open with their Modern Mirror; the plain rules (the tour's words) fold under "How this place works".
+- **After each move:** `details.moments` (from the bridge) queue as `ui/EventCard.tsx` cards (events with choices: dispute fraud, walk away from the Pearl Exchange, go to Grin) and, where a season ended, `ui/ReportCard.tsx` (the season report on a scroll, from `GET /report` and `GET /report/note`). Order is preserved: the old season's cards, its report, then what opened the new one.
 - **The end:** in the final call (`phase == final_call`) `ui/Ending.tsx` shows the Passage checklist; then the ending with the Modern Mirror and Scrolls.
 - **HUD:** P3's HUD plus Scrolls and Ledger buttons; the Ledger shows each Nessie record's status and the Purse/Vault check against Nessie.
-- **Words:** every player-facing line is in `ui/copy.ts` (from the design doc) until Mitansh's `content/` replaces it.
+- **Words:** every player-facing line is in `backend/app/content/`; `ui/copy.ts` only types it.
 - **Dev hook:** in dev builds `window.atlantis.EventBus` lets a console or test script drive the city, e.g. `atlantis.EventBus.emit("go-to-building", "bank")`.
 
 ## Frontend city (P3)

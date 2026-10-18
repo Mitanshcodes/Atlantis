@@ -310,6 +310,17 @@ CREDIT_BUILT_STANDING = 580
 DIVERSIFIED_HOUSES = 3
 HOUSE_ALWAYS_WINS_LOSS = 100  # coin lost at the Drowned Bell over the year
 
+# --- Season report (the report card at each season's end) ----------------------------------------
+
+REPORT_IDLE_TIDES = (0, 1, 3)  # most idle tides (rested or skipped) for an A, B and C; more is a D
+REPORT_IDLE_PURSE = 500  # Purse coin left at season end that counts as sitting idle
+REPORT_SAFE_PURSE = 300  # at or under this, with the rest in the Vault, counts as well kept
+# On course: net worth as a share of next season's Passage price at the end of Spring, Summer, Autumn.
+# Working every tide and nothing else lands about 10 points under each, and never boards.
+REPORT_PACE_TARGETS = (0.55, 0.70, 0.85)
+REPORT_PACE_STEPS = (0.10, 0.25)  # how far under the target still earns a B, then a C
+REPORT_MIRROR_TOPICS = 3  # Modern Mirror lessons on each report
+
 # --- Businesses (only if ahead) -------------------------------------------------------------------
 
 
