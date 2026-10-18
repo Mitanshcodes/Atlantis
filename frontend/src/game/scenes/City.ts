@@ -14,6 +14,8 @@ import {
 import { CURSORS } from "../cursors";
 import { EventBus } from "../EventBus";
 import { addCritters } from "../fx/critters";
+import { NPCS, type NpcId } from "../npcs";
+import { NpcWalker } from "../npcWalkers";
 import {
   DEPTH,
   addCaustics,
@@ -35,6 +37,8 @@ const CAMERA_LERP = 0.08; // how quickly the camera catches up with the player
 const HOP = { squash: 60, vanish: 130, swell: 110, spring: 240 } as const;
 /** Where the middle of the player is, above their feet: bubbles burst from here. */
 const PLAYER_MID = 13;
+/** How far to the side of someone the player stands to talk to them. */
+const NPC_TALK_GAP = 20;
 const ZOOMS = [1, 2, 3, 4] as const; // whole steps keep pixel art crisp
 const PLATE_FONT = '"Silkscreen", monospace';
 const SHADOW = { x: 4, y: 3, color: 0x0a1a22, alpha: 0.28 } as const;
@@ -45,6 +49,8 @@ export class City extends Phaser.Scene {
   private playerSprite!: Phaser.GameObjects.Sprite;
   private facing: Facing = "down";
   private hopping = false;
+  private walkers = new Map<NpcId, NpcWalker>();
+  private talkingTo: NpcId | null = null;
   private poof!: Phaser.GameObjects.Particles.ParticleEmitter;
   private rise!: Phaser.GameObjects.Particles.ParticleEmitter;
   private inside: BuildingId | null = null;
@@ -72,6 +78,7 @@ export class City extends Phaser.Scene {
     this.createDecor();
     this.createBuildings();
     this.createPlayer();
+    this.createNpcs();
 
     addColorGrade(this);
     addLightBeams(this);
@@ -99,13 +106,21 @@ export class City extends Phaser.Scene {
     this.setupCamera();
     this.setupInput();
 
-    const offLeft = EventBus.on("building-left", (id) => this.leaveBuilding(id));
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, offLeft);
+    const offs = [
+      EventBus.on("building-left", (id) => this.leaveBuilding(id)),
+      EventBus.on("go-to-building", (id) => this.goTo(BUILDINGS_BY_ID[id])),
+      EventBus.on("npc-left", (id) => this.leaveConversation(id)),
+      EventBus.on("npc-alerts", (alerts) => {
+        for (const [id, walker] of this.walkers) walker.setAlert(!!alerts[id]);
+      }),
+    ];
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => offs.forEach((off) => off()));
     EventBus.emit("city-ready");
   }
 
   update(time: number, delta: number): void {
     for (const step of this.updaters) step(time, delta);
+    for (const walker of this.walkers.values()) walker.update(time);
     if (this.hovered) this.emitHover(this.hovered);
     this.player.setDepth(DEPTH.objects + this.player.y);
   }
@@ -270,8 +285,40 @@ export class City extends Phaser.Scene {
   }
 
   private goTo(building: Building): void {
-    if (this.inside) return;
+    if (this.inside || this.talkingTo) return;
     this.hopTo(building.door, () => this.enterBuilding(building.id));
+  }
+
+  // --- The cast -------------------------------------------------------------------------------
+
+  private createNpcs(): void {
+    NPCS.forEach((npc, i) => {
+      const walker = new NpcWalker(this, npc, 101 + i);
+      walker.sprite.on(Phaser.Input.Events.POINTER_UP, () => {
+        if (!this.dragging) this.approach(walker);
+      });
+      this.walkers.set(npc.id, walker);
+    });
+  }
+
+  /** Hop to stand beside them, then they stop and turn, and the conversation opens. */
+  private approach(walker: NpcWalker): void {
+    if (this.inside || this.talkingTo || this.hopping) return;
+    const { x, y } = walker.sprite;
+    const side = this.player.x < x ? -1 : 1;
+    const spot = nearestWalkable({ x: x + side * NPC_TALK_GAP, y: y + 2 });
+    walker.talkTo(spot);
+    this.talkingTo = walker.npc.id;
+    this.hopTo(spot, () => {
+      this.face(x - this.player.x, 0);
+      EventBus.emit("npc-talk", walker.npc.id);
+    });
+  }
+
+  private leaveConversation(id: NpcId): void {
+    if (this.talkingTo !== id) return;
+    this.talkingTo = null;
+    this.walkers.get(id)?.resume();
   }
 
   /**
@@ -414,7 +461,7 @@ export class City extends Phaser.Scene {
         this.input.setDefaultCursor(CURSORS.default);
         // Let building handlers see the drag flag first, then reset it.
         this.time.delayedCall(0, () => (this.dragging = false));
-        if (wasDrag || over.length || this.inside) return;
+        if (wasDrag || over.length || this.inside || this.talkingTo) return;
         this.hopTo({ x: p.worldX, y: p.worldY });
       },
     );

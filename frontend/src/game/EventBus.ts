@@ -5,6 +5,7 @@
 
 import Phaser from "phaser";
 import type { BuildingId } from "./buildings";
+import type { NpcId } from "./npcs";
 
 export interface GameEvents {
   /** The city scene finished loading and is on screen. */
@@ -18,6 +19,14 @@ export interface GameEvents {
   "building-entered": [id: BuildingId];
   /** React closed the building's panel; the player steps back outside. */
   "building-left": [id: BuildingId];
+  /** React wants the player to go into a building (a choice in someone's dialogue). */
+  "go-to-building": [id: BuildingId];
+  /** The player reached someone in the street and started talking. */
+  "npc-talk": [id: NpcId];
+  /** React closed the conversation; they go back to pottering about. */
+  "npc-left": [id: NpcId];
+  /** Who has something new to say, worked out by React from the engine state. */
+  "npc-alerts": [alerts: Partial<Record<NpcId, boolean>>];
 }
 
 type Handler<K extends keyof GameEvents> = (...args: GameEvents[K]) => void;
