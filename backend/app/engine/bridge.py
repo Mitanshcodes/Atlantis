@@ -17,11 +17,16 @@ The money itself always moves.
 
 from __future__ import annotations
 
+import copy
+import dataclasses
+import json
 from enum import Enum
+from functools import lru_cache
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 from app import config
-from app.engine import exchange, game, market, money, scrolls
+from app.engine import exchange, game, market, money, report, scrolls
 from app.engine.actions import (
     ActionError,
     BlackReefAdvance,
@@ -33,6 +38,7 @@ from app.engine.actions import (
     EndSeason,
     EndYear,
     ExchangeVisit,
+    Gamble,
     InvestPearlExchange,
     MarketTrip,
     OpenSecuredCard,
@@ -49,8 +55,9 @@ from app.engine.actions import (
     Withdraw,
     Work,
 )
-from app.engine.serialize import from_data, to_data
+from app.engine.serialize import decode, from_data, to_data
 from app.engine.state import (
+    SEASONS,
     Account,
     BillKind,
     BusinessKind,
@@ -110,6 +117,15 @@ def minor(coins: float) -> int:
     return int(round(coins * MINOR))
 
 
+CONTENT_DIR = Path(__file__).resolve().parents[1] / "content"
+
+
+@lru_cache(maxsize=None)
+def content(name: str) -> Dict[str, Any]:
+    """The writing in app/content/<name>.json (shared with the frontend)."""
+    return json.loads((CONTENT_DIR / f"{name}.json").read_text(encoding="utf-8"))
+
+
 # --- The P2 contract ------------------------------------------------------------------------------
 
 
@@ -118,6 +134,7 @@ def new_game(class_id: str, seed: int) -> Transition:
         raise ValueError(f"Unknown class: {class_id}")
     s = game.new_game(CLASS_IDS[class_id], seed)
     memory: Dict[str, Any] = {"loan_names": {}, "loan_count": 0}
+    _keep_season(s, memory)
     effects = _effects(None, s, prefix="start", memory=memory)
     return Transition(state=_snapshot(s, 0, class_id, memory), events=describe(s.log), effects=effects)
 
@@ -128,19 +145,121 @@ def apply_action(state: State, action: Action) -> Transition:
         raise ValueError("This run has no engine state; start a new journey")
     before = from_data(engine)
     s = from_data(engine)
-    memory = dict(state.details.get("bridge") or {"loan_names": {}, "loan_count": 0})
-    memory["loan_names"] = dict(memory.get("loan_names", {}))
+    memory = copy.deepcopy(state.details.get("bridge") or {"loan_names": {}, "loan_count": 0})
+    memory.setdefault("loan_names", {})
     try:
         for engine_action in translate(action, s):
             game.step(s, engine_action)
     except ActionError as exc:
         raise ValueError(exc.message) from None
+    _keep_season(s, memory)
     effects = _effects(before, s, prefix=action.action_id, memory=memory)
     return Transition(
         state=_snapshot(s, state.version + 1, state.class_id, memory),
         events=describe(s.log),
         effects=effects,
     )
+
+
+# --- Season reports -------------------------------------------------------------------------------
+
+
+def _plain(items: Sequence[Any]) -> List[Dict[str, Any]]:
+    return json.loads(json.dumps([dataclasses.asdict(x) for x in items]))
+
+
+def _keep_season(s: GameState, memory: Dict[str, Any]) -> None:
+    """The stored engine state drops its log after every move, so the bridge keeps the current
+    season's log and ledger itself. When a season ends, its report is worked out and kept."""
+    book = memory.setdefault("season_book", {"log": [], "ledger": []})
+    book["log"] += _plain(s.log)
+    book["ledger"] += _plain(s.ledger)
+    ended = [e.season for e in s.log if e.kind == "season_end"]
+    if not ended:
+        return
+    reports = memory.setdefault("reports", {})
+    for season in ended:
+        past = s.clone()
+        # The season, plus the next one's opening (its Passage price, debasement included).
+        past.log = [decode(LogEvent, d) for d in book["log"]
+                    if d["season"] == season or (d["season"] == season + 1 and d["kind"] == "season_open")]
+        past.ledger = [decode(LedgerEntry, d) for d in book["ledger"] if d["season"] == season]
+        reports[str(season)] = json.loads(json.dumps(report.season_report(past, season)))
+    last = max(ended)
+    book["log"] = [d for d in book["log"] if d["season"] > last]
+    book["ledger"] = [d for d in book["ledger"] if d["season"] > last]
+
+
+def _fill(template: str, params: Dict[str, Any]) -> str:
+    def show(v: Any) -> Any:
+        return "" if v is None else f"{v:,}" if isinstance(v, int) and not isinstance(v, bool) else v
+    return template.format(**{k: show(v) for k, v in params.items()})
+
+
+GRADE_ORDER = "DCBA"
+
+
+def _chelo(marks: List[Dict[str, Any]], lines: Dict[str, Any]) -> List[str]:
+    """Chelo's hand-written bullets: praise for the best thing, questions about the two weakest."""
+    by_why = {m["why"]: m for m in marks}
+    praise = next((line for why, line in lines["praise"].items() if why in by_why), "")
+    weak = sorted((m for m in marks if m["grade"] in "CD"), key=lambda m: GRADE_ORDER.index(m["grade"]))
+    if not weak:
+        return [x for x in (praise, lines["steady"]) if x]
+    asks = [_fill(lines["ask"].get(m["why"]) or lines["ask"][m["subject"]], m["params"]) for m in weak[:2]]
+    return ([praise] if praise else []) + asks
+
+
+def season_report(state: State, season: str) -> Dict[str, Any]:
+    """The report card for a finished season, in words from content/report.json and
+    content/mirror.json. Money here is in whole coin. Raises LookupError if there's none."""
+    index = next((i for i, s in enumerate(SEASONS) if SEASON_NAMES[s] == season), None)
+    facts = ((state.details.get("bridge") or {}).get("reports") or {}).get(str(index))
+    if facts is None:
+        raise LookupError("No report for that season.")
+    words, mirror, houses = content("report"), content("mirror"), content("market")["houses"]
+    marks = [
+        {"subject": m["subject"], "label": words["subjects"][m["subject"]], "grade": m["grade"],
+         "text": _fill(words["marks"][m["why"]], m["params"])}
+        for m in facts["marks"]
+    ]
+    t = facts["tides"]
+    tides = [
+        {"use": use, "label": words["tides"][use], "count": t[use]}
+        for use in ("work", "market", "exchange", "business", "rested", "skipped", "care", "hunger")
+        if t[use]
+    ]
+    money_words = {"in": words["money_in"], "out": words["money_out"]}
+    flow = facts["money"]
+    inv = facts["investments"]
+    return {
+        "season": season,
+        "season_index": index,
+        "next_season": SEASON_NAMES[SEASONS[index + 1]],
+        "class_id": state.class_id,
+        "pace": facts["pace"],
+        "target": round(config.REPORT_PACE_TARGETS[index] * 100),
+        "marks": marks,
+        "tides": {"total": t["total"], "uses": tides, "free_trips": t["free_trips"], "wages": t["wages"]},
+        "money": {
+            side: [{"category": r["category"], "label": money_words[side].get(r["category"], r["category"]),
+                    "amount": r["amount"]} for r in flow[side]]
+            for side in ("in", "out")
+        } | {k: flow[k] for k in ("total_in", "total_out", "saved", "debt_paid", "borrowed")},
+        "investments": {
+            "rows": [dict(r, name=houses.get(r["house"], {}).get("name", r["house"])) for r in inv["rows"]],
+            "dividends": inv["dividends"],
+            "index_change": inv["index_change"],
+            "pearls": inv["pearls"],
+        },
+        "standing": facts["standing"],
+        "shock": facts["shock"],
+        "events": facts["events"],
+        "scrolls": facts["scrolls"],
+        "mirror": [dict(mirror["topics"][topic], topic=topic) for topic in facts["topics"]],
+        "chelo": _chelo(facts["marks"], words["chelo"]),
+        "facts": facts,
+    }
 
 
 # --- Actions --------------------------------------------------------------------------------------
@@ -222,6 +341,9 @@ def translate(action: Action, s: GameState) -> List[object]:
         return [InvestPearlExchange(_coins(action.amount))]
     if k == "visit":
         return [Visit(_enum(Place, action.target, "place"))]
+    if k == "gamble":
+        # The stake is ``amount``; the shell game's pick (1-3) travels as ``quantity``.
+        return [Gamble(action.target or "", _coins(action.amount), action.quantity)]
     if k == "buy_business":
         return [BuyBusiness(_enum(BusinessKind, action.target, "business"))]
     trades = {"buy_kelp": (Good.KELP, 1), "sell_kelp": (Good.KELP, -1), "buy_pearls": (Good.PEARLS, 1), "sell_pearls": (Good.PEARLS, -1)}
@@ -277,6 +399,8 @@ def available_actions(s: GameState) -> List[str]:
         out.append("dispute_charge")
     if any(o.kind == EventKind.PEARL_EXCHANGE for o in s.offers):
         out.append("invest_pearl_exchange")
+    if s.flags.games_this_season < config.GAMES_PER_SEASON and s.purse >= config.GAMBLE_MIN:
+        out.append("gamble")
     if s.passage_paid is None:
         out.append("buy_passage")
     if config.FEATURE_BUSINESSES and s.phase == Phase.PLAYING:
@@ -371,6 +495,13 @@ def view(s: GameState) -> Dict[str, Any]:
         "storm_level": s.storm_level,
         "offers": [{"kind": o.kind.value, "amount": minor(o.amount)} for o in s.offers],
         "scrolls": [x.value for x in s.scrolls],
+        "shock": s.shock,
+        "tavern": {
+            "games_left": max(0, config.GAMES_PER_SEASON - s.flags.games_this_season),
+            "min": minor(config.GAMBLE_MIN),
+            "max": minor(config.GAMBLE_MAX),
+            "net": minor(s.flags.gamble_net),
+        },
         "net_worth": minor(scrolls.net_worth(s)),
         "ending": s.ending.value if s.ending else None,
         "miss_cause": s.miss_cause.value if s.miss_cause else None,
@@ -501,15 +632,6 @@ def _entry_effects(e: LedgerEntry, s: GameState, add, opening: bool, bills_on: b
 # --- Events ---------------------------------------------------------------------------------------
 
 
-# What the city's voices say when a scenario or the debasement is coming (shown as news).
-CLUES = {
-    "debasement.orichalcum": "Nerissa hears the Council's vaults are short on orichalcum, and they'll thin the coin before long.",
-    "scenario.silk_boom": "Herald Kaito announces the surface kingdoms are ordering cloth by the shipload.",
-    "scenario.kelp_blight": "Nerissa says the kelp farmers are whispering about rot in the beds.",
-    "scenario.stormy_seas": "Captain Oro warns the autumn currents feel wrong, and he'd not trust a hull to them.",
-}
-
-
 def _fmt_rate(rate: float) -> str:
     return f"{rate * 100:.0f}%"
 
@@ -573,7 +695,15 @@ def describe_event(e: LogEvent) -> Optional[str]:
     if k == "debasement":
         return "The Council debased the coin. Prices, Passage and shares rose; coin did not."
     if k == "clue":
-        return CLUES.get(d["key"], f"A rumor from {d['source'].replace('_', ' ').title()}.")
+        return content("scenarios")["clues"].get(d["key"], f"A rumor from {d['source'].replace('_', ' ').title()}.")
+    if k == "market_shock":
+        words = content("events")["shocks"].get(d["shock"], {})
+        return f"{words.get('title', 'Market news')}: {words.get('means', '')}".strip()
+    if k == "gamble":
+        name = content("buildings")["tavern"]["games"].get(d["game"], {}).get("name", "a game")
+        if d["won"]:
+            return f"Won {d['won']}◈ on {name} with a {d['stake']}◈ stake."
+        return f"Lost {d['stake']}◈ on {name}."
     if k == "panic":
         return "Panic swept the Exchange as the Long Dark began."
     if k == "rumor_corrected":
@@ -619,7 +749,7 @@ def _value(x: Any) -> Any:
 
 
 MOMENT_KINDS = ("event", "scroll", "season_end", "debasement", "clue", "passage_bought", "final_call",
-                "ending", "fraud_lost", "scam_revealed", "card_frozen")
+                "ending", "fraud_lost", "scam_revealed", "card_frozen", "market_shock", "gamble")
 
 
 def moments_of(log: Sequence[LogEvent]) -> List[Dict[str, Any]]:
@@ -629,16 +759,22 @@ def moments_of(log: Sequence[LogEvent]) -> List[Dict[str, Any]]:
     for e in log:
         if e.kind not in MOMENT_KINDS:
             continue
-        moment: Dict[str, Any] = {"kind": e.kind, "text": describe_event(e) or ""}
+        # The season it happened in: cards are often shown after the season has turned.
+        moment: Dict[str, Any] = {"kind": e.kind, "text": describe_event(e) or "", "season": SEASON_NAMES[SEASONS[e.season]]}
         if e.kind == "event":
             moment["event"] = _value(e.data.get("event"))
         elif e.kind == "scroll":
             moment["scroll"] = _value(e.data["scroll"])
-        elif e.kind == "season_end":
-            moment["season"] = SEASON_NAMES[Season(e.data["season"])]
         elif e.kind == "ending":
             moment["ending"] = _value(e.data["ending"])
         elif e.kind == "clue":
             moment["source"] = _value(e.data["source"])
+        elif e.kind == "market_shock":
+            moment["shock"] = e.data["shock"]
+        elif e.kind == "gamble":
+            moment.update(game=e.data["game"], stake=minor(e.data["stake"]), won=minor(e.data["won"]))
+            for key in ("pick", "pearl", "multiple"):
+                if key in e.data:
+                    moment[key] = e.data[key]
         out.append(moment)
     return out

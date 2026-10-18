@@ -13,7 +13,8 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": ["vite/client", "node"],
+    "paths": { "@content/*": ["../backend/app/content/*"] }
   },
   "include": ["src", "vite.config.ts"]
 }

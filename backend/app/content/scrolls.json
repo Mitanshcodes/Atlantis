@@ -1,0 +1,67 @@
+{
+  "rainy_day": {
+    "name": "Rainy Day",
+    "how": "Enter the Long Dark with a season of kelp stored.",
+    "lesson": "An emergency fund"
+  },
+  "bought_low": {
+    "name": "Bought Low",
+    "how": "Stockpile kelp in Summer.",
+    "lesson": "Buying ahead of price rises"
+  },
+  "melting_coin": {
+    "name": "The Melting Coin",
+    "how": "Hold lots of coin through the debasement.",
+    "lesson": "Inflation"
+  },
+  "debt_spiral": {
+    "name": "The Debt Spiral",
+    "how": "Pay only the minimum on Leviathan Credit for two seasons.",
+    "lesson": "Compound interest"
+  },
+  "rich_on_paper": {
+    "name": "Rich on Paper",
+    "how": "Own enough for Passage but fail to turn it into coin in time.",
+    "lesson": "Liquidity"
+  },
+  "not_all_on_one_ship": {
+    "name": "Not All on One Ship",
+    "how": "Hold three houses, or the Tide Index.",
+    "lesson": "Diversification"
+  },
+  "fire_sale": {
+    "name": "Fire Sale",
+    "how": "Sell at a loss in the Long Dark.",
+    "lesson": "Forced selling"
+  },
+  "siren_song": {
+    "name": "Siren Song",
+    "how": "Fall for the Pearl Exchange.",
+    "lesson": "Scams"
+  },
+  "read_the_ledger": {
+    "name": "Read the Ledger",
+    "how": "Catch and dispute a fraudulent charge.",
+    "lesson": "Fraud"
+  },
+  "credit_built": {
+    "name": "Credit Built",
+    "how": "Take your Standing from Unrated to 580.",
+    "lesson": "Building credit"
+  },
+  "good_debt": {
+    "name": "Good Debt",
+    "how": "Earn more from a loan-funded business than the loan costs.",
+    "lesson": "Leverage"
+  },
+  "circle_of_trust": {
+    "name": "Circle of Trust",
+    "how": "Never miss a circle payment, even in the Long Dark.",
+    "lesson": "Community finance"
+  },
+  "house_always_wins": {
+    "name": "The House Always Wins",
+    "how": "Lose 100◈ at Nerissa's tables over the year.",
+    "lesson": "Gambling and the house edge"
+  }
+}

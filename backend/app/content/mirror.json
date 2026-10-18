@@ -1,0 +1,243 @@
+{
+  "_note": "The Modern Mirror: what each part of Atlantis is in the real world. 'rooms' shows in each building; 'topics' are the lessons a season report can pick (app/engine/report.py chooses which).",
+  "rooms": {
+    "bank": [
+      {
+        "here": "Purse",
+        "there": "Checking account",
+        "text": "Everyday money. Earns almost nothing; a stolen debit card drains it."
+      },
+      {
+        "here": "Vault",
+        "there": "Savings account",
+        "text": "Earns interest, and the FDIC insures it up to $250,000. Often grows slower than prices."
+      },
+      {
+        "here": "Leviathan Credit",
+        "there": "Credit card",
+        "text": "30% a year. US card rates average over 20%, so carried balances snowball."
+      },
+      {
+        "here": "Standing",
+        "there": "Credit score",
+        "text": "300 to 850, like FICO. Paying on time is 35% of it."
+      },
+      {
+        "here": "Secured card",
+        "there": "Secured credit card",
+        "text": "A deposit becomes your limit: how people with no history start building credit."
+      }
+    ],
+    "market": [
+      {
+        "here": "Kelp",
+        "there": "Groceries",
+        "text": "The bill you can't skip. Bird flu doubled US egg prices in 2022."
+      },
+      {
+        "here": "Pearls",
+        "there": "Gold",
+        "text": "Pays nothing, but has held its value for centuries."
+      },
+      {
+        "here": "Price nudges",
+        "there": "Supply and demand",
+        "text": "Big orders move prices. That's why big funds buy slowly."
+      }
+    ],
+    "harbor": [
+      {
+        "here": "Harbor Exchange",
+        "there": "New York Stock Exchange",
+        "text": "Where you buy shares: small pieces of companies."
+      },
+      {
+        "here": "Oro & Daughters",
+        "there": "Blue-chip dividend stock",
+        "text": "Steady, and pays you part of its profit. Coca-Cola has raised its dividend 60+ years running."
+      },
+      {
+        "here": "Leviathan Line",
+        "there": "High-growth stock",
+        "text": "Can double in a year, or halve."
+      },
+      {
+        "here": "Deepcoral Salvage",
+        "there": "Penny stocks, lottery tickets",
+        "text": "A rare jackpot, and a loss on average."
+      },
+      {
+        "here": "The Tide Index",
+        "there": "S&P 500 index fund",
+        "text": "500 big companies in one buy, so one bad year barely dents it."
+      },
+      {
+        "here": "The Long Dark panic",
+        "there": "A market crash",
+        "text": "Stocks fell 57% in 2007–09. Those forced to sell, sold at the bottom."
+      },
+      {
+        "here": "Passage",
+        "there": "A home down payment",
+        "text": "Paid in cash on the day. Paper wealth doesn't count until it's sold."
+      }
+    ],
+    "guild_hall": [
+      {
+        "here": "A shift",
+        "there": "Your paycheck",
+        "text": "Reliable and slow. Big goals usually get pricier faster than pay rises."
+      },
+      {
+        "here": "Tides",
+        "there": "Your time",
+        "text": "An hour spent one way can't be spent another: opportunity cost."
+      },
+      {
+        "here": "Work alone falls short",
+        "there": "Why people invest",
+        "text": "Saving wages rarely outruns rising prices. Money that earns money closes the gap."
+      }
+    ],
+    "drowned_bell": [
+      {
+        "here": "Nerissa's games",
+        "there": "Casinos and lotteries",
+        "text": "Built to pay back less than they take. Lotteries return about 50–65¢ per $1."
+      },
+      {
+        "here": "The Kraken's Wheel",
+        "there": "Slot machines",
+        "text": "Pays back 88¢ per $1, like many slots. Rare big wins keep you playing."
+      },
+      {
+        "here": "Tavern rumors",
+        "there": "Stock tips online",
+        "text": "GameStop went from $20 to $400 on hype in 2021, then crashed."
+      }
+    ],
+    "black_reef": [
+      {
+        "here": "Grin",
+        "there": "Payday lender",
+        "text": "$15 per $100 for two weeks: nearly 400% a year. Most borrowers roll it over."
+      },
+      {
+        "here": "No Standing needed",
+        "there": "No credit check",
+        "text": "The easy yes is the trap: they profit when you can't repay."
+      }
+    ],
+    "circle": [
+      {
+        "here": "Old Maro's circle",
+        "there": "Lending circle (ROSCA)",
+        "text": "Tandas, susus, chit funds, hui: neighbours pooling money, used worldwide."
+      },
+      {
+        "here": "Taking the pot early",
+        "there": "An interest-free loan",
+        "text": "Trust instead of interest. Some US nonprofits report the payments to build credit."
+      }
+    ],
+    "council": [
+      {
+        "here": "Council of Ten",
+        "there": "The Federal Reserve",
+        "text": "Sets interest rates and aims for 2% inflation a year."
+      },
+      {
+        "here": "The tithe",
+        "there": "Taxes",
+        "text": "Due every year, whatever you earned."
+      },
+      {
+        "here": "Debasement",
+        "there": "Inflation",
+        "text": "Rome thinned its silver coins; US prices rose 9.1% in 2022. Cash buys less."
+      }
+    ]
+  },
+  "topics": {
+    "payday_loan": {
+      "name": "Payday loans",
+      "text": "Grin is a payday lender: about 400% a year. The costliest money there is."
+    },
+    "ponzi": {
+      "name": "Ponzi schemes",
+      "text": "Early 'returns' are paid with later investors' money. Madoff's ran for decades. Guaranteed high returns are the tell."
+    },
+    "missed_payment": {
+      "name": "Payment history",
+      "text": "35% of a credit score. One 30-day late payment stays on your report for 7 years."
+    },
+    "card_interest": {
+      "name": "Credit card interest",
+      "text": "Interest on interest. At 20%+ a year, minimum payments can stretch a small balance over years."
+    },
+    "card_fraud": {
+      "name": "Disputing charges",
+      "text": "You have 60 days to dispute a card charge in the US. Check your statements."
+    },
+    "house_edge": {
+      "name": "The house edge",
+      "text": "Every casino game pays back less than it takes. You can win a night, not a year."
+    },
+    "cash_theft": {
+      "name": "Keeping cash safe",
+      "text": "Stolen cash is gone. Bank deposits are FDIC-insured up to $250,000."
+    },
+    "inflation": {
+      "name": "Inflation",
+      "text": "Prices jumped; your coin didn't. In 2022 US prices rose 9.1%. Cash melts, assets tend to rise."
+    },
+    "emergency_fund": {
+      "name": "Emergency funds",
+      "text": "1 in 3 US adults can't cover a $400 surprise in cash. Aim for 3–6 months saved."
+    },
+    "lottery": {
+      "name": "Lottery stocks",
+      "text": "Like penny stocks: people overpay for a small shot at a jackpot."
+    },
+    "index_fund": {
+      "name": "Index funds",
+      "text": "Like an S&P 500 fund: many companies in one buy. Real ones charge 0.03% a year."
+    },
+    "diversify": {
+      "name": "Diversification",
+      "text": "Enron workers lost their jobs and their savings at once, because both were in Enron."
+    },
+    "dividends": {
+      "name": "Dividends",
+      "text": "Profit paid to shareholders. Reinvested, they're a big part of stock returns."
+    },
+    "rosca": {
+      "name": "Lending circles",
+      "text": "Millions use ROSCAs to save and borrow without a bank."
+    },
+    "seasonal_prices": {
+      "name": "Buying ahead",
+      "text": "Buying food in season or in bulk is the simplest way to stretch a budget."
+    },
+    "opportunity_cost": {
+      "name": "Opportunity cost",
+      "text": "An idle tide costs the shift you didn't work."
+    },
+    "credit_score": {
+      "name": "Credit scores",
+      "text": "On-time payments first, then using under 30% of your limit, then time."
+    },
+    "savings_rate": {
+      "name": "Savings vs inflation",
+      "text": "In the 2010s US savings paid under 0.1% while prices rose 2% a year."
+    },
+    "news_shock": {
+      "name": "News moves markets",
+      "text": "One stuck ship in the Suez Canal (2021) froze billions in trade a day."
+    },
+    "real_return": {
+      "name": "Real returns",
+      "text": "Earn 5% while prices rise 3%, and you're only 2% richer."
+    }
+  }
+}

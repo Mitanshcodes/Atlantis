@@ -1,0 +1,127 @@
+{
+  "bank": {
+    "about": "Your money, kept by Ione. Nothing here costs a tide.",
+    "do": [
+      "Purse: spending coin. It earns nothing and can be stolen.",
+      "Vault: savings. Earns a little, can't be stolen.",
+      "Leviathan Credit: pay the minimum each season, or lose Standing."
+    ],
+    "cost": "Free"
+  },
+  "market": {
+    "about": "Food, and pearls that hold their value.",
+    "do": [
+      "Your household eats 20 kelp a season. Cheapest in Summer, dearest in the Long Dark.",
+      "Your cellar holds 60. Stored kelp spoils a little each season."
+    ],
+    "cost": "First trip each season free, then 1 tide"
+  },
+  "harbor": {
+    "about": "Buy shares in shipping houses. Buy your Passage.",
+    "do": [
+      "Voyages land each season end: success lifts a house's shares, failure sinks them.",
+      "The Tide Index holds every house, so one wreck hurts less.",
+      "Shares fall 20% when the Long Dark begins. Sell before then if you need coin."
+    ],
+    "cost": "First visit each season free, then 1 tide"
+  },
+  "guild_hall": {
+    "about": "Where you earn your wage.",
+    "do": [
+      "A shift pays your wage and costs a tide.",
+      "Six tides a season. When they're gone, the season ends."
+    ],
+    "cost": "1 tide a shift"
+  },
+  "drowned_bell": {
+    "about": "Nerissa's tavern: rumors and games of chance.",
+    "do": [
+      "Rumors here are right about 7 times in 10.",
+      "Three games a season. Every game pays back less than it takes."
+    ],
+    "cost": "Free"
+  },
+  "black_reef": {
+    "about": "Grin lends to anyone. That's the trap.",
+    "do": [
+      "Borrow up to 300◈, no Standing needed.",
+      "The fee grows by half every season: 100◈ → 150◈ → 225◈."
+    ],
+    "cost": "Free to enter"
+  },
+  "circle": {
+    "about": "Old Maro's lending circle: neighbours who pool coin and take turns.",
+    "do": [
+      "Take the pot early and repay it a little each season.",
+      "Keep every payment and the circle stands by you at the end."
+    ],
+    "cost": "Free"
+  },
+  "council": {
+    "about": "The Council of Ten rules Atlantis. The Herald never lies.",
+    "do": [
+      "It sets the tithe (40◈ a season) and the Vault's rate.",
+      "It can debase the coin: prices jump, your coin doesn't."
+    ],
+    "cost": "Free"
+  },
+  "maro_questions": [
+    {
+      "when": "debt",
+      "q": "What do you owe, and to whom? Nobody boards that ship owing."
+    },
+    {
+      "when": "card",
+      "q": "Your card grows a little every season. What will it cost if you only ever pay the minimum?"
+    },
+    {
+      "when": "no_savings",
+      "q": "If your roof leaked tomorrow, where would the coin come from?"
+    },
+    {
+      "when": "behind",
+      "q": "Passage climbs every season. Is your coin climbing faster than the price?"
+    },
+    {
+      "when": "idle_coin",
+      "q": "That coin in your Purse: is it working for you, or just waiting to be stolen?"
+    },
+    {
+      "when": "low_kelp",
+      "q": "Kelp is dearest in the Long Dark. How full will your cellar be when the dark comes?"
+    },
+    {
+      "when": "passage",
+      "q": "You have your Passage. Who else in this city could use a little help?"
+    },
+    {
+      "when": "always",
+      "q": "When the tide turns against you, who would you turn to?"
+    }
+  ],
+  "tavern": {
+    "games": {
+      "shells": {
+        "name": "Nerissa's Shells",
+        "rules": "Three shells, one pearl. Pick the shell with the pearl and win back 2.5× your stake.",
+        "odds": "Wins 1 time in 3 · pays 2.5×"
+      },
+      "wheel": {
+        "name": "The Kraken's Wheel",
+        "rules": "Spin the wheel. Most spins land on the kraken and take your stake; a few pay double, four times, or ten times.",
+        "odds": "Loses 71% · 2× 20% · 4× 7% · 10× 2%"
+      }
+    },
+    "win": [
+      "Nerissa slides your winnings across the bar. \"Don't spend it all in one tide.\"",
+      "The whole tavern cheers. Nerissa just smiles.",
+      "\"Luck's on your side tonight,\" says Nerissa. \"It usually changes its mind.\""
+    ],
+    "lose": [
+      "Nerissa sweeps your coin into the till. \"The board doesn't lie, love.\"",
+      "The kraken wins again. It usually does.",
+      "\"Every game pays back less than it takes,\" Nerissa reminds you, not unkindly."
+    ],
+    "limit": "Nerissa wipes down the table. \"That's enough games for one season.\""
+  }
+}

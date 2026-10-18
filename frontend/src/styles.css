@@ -1632,3 +1632,1147 @@ body,
     font-size: 16px;
   }
 }
+
+/* --- Room explanations, market news, and the Drowned Bell's games --------------------------- */
+
+/* The top of every room: the Modern Mirror button beside the folded rules. */
+.room__intro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: stretch;
+  margin: 10px 0 4px;
+}
+
+.room__intro .room-how {
+  flex: 1 1 240px;
+  margin: 0;
+}
+
+/* --- The Modern Mirror: a gilded hand-mirror button, and the looking-glass it opens ------------- */
+
+.mirror-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 8px 10px;
+  font: inherit;
+  text-align: left;
+  color: var(--marble);
+  background: linear-gradient(135deg, #1b3550, #0e2234 60%, #1b3550);
+  border: 2px solid var(--gold);
+  box-shadow: inset 0 0 0 2px #0a1a28, 0 0 0 1px #3a2a10, 3px 3px 0 rgba(7, 20, 28, 0.6);
+  cursor: var(--cursor-hover, pointer);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.mirror-button:hover,
+.mirror-button:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: inset 0 0 0 2px #0a1a28, 0 0 0 1px #3a2a10, 0 0 18px rgba(242, 205, 110, 0.35), 3px 4px 0 rgba(7, 20, 28, 0.6);
+}
+
+/* The oval glass in its gold frame, with a sheen that sweeps across now and then. */
+.mirror-button__glass {
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 38px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 35% 30%, #e8fbff, #9ee8df 35%, #3a8fa8 70%, #1e4a66);
+  border: 3px solid var(--gold-light);
+  box-shadow: 0 0 0 2px #8a6a2a, inset 0 0 6px rgba(0, 40, 60, 0.6);
+}
+
+.mirror-button__glass::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  width: 6px;
+  height: 10px;
+  transform: translateX(-50%);
+  background: var(--gold);
+}
+
+.mirror-button__shine {
+  position: absolute;
+  inset: -40% auto -40% -80%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+  transform: skewX(-20deg);
+  animation: mirror-shine 3.6s ease-in-out infinite;
+}
+
+@keyframes mirror-shine {
+  0%,
+  60% {
+    left: -80%;
+  }
+  100% {
+    left: 140%;
+  }
+}
+
+.mirror-button__words {
+  display: flex;
+  flex-direction: column;
+}
+
+.mirror-button__name {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--gold-light);
+}
+
+.mirror-button__hint {
+  font-size: 13px;
+  color: var(--foam);
+}
+
+.mirror-button__count {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: 4px;
+  font-family: var(--font-plate);
+  font-size: 11px;
+  color: var(--ink);
+  background: var(--gold-light);
+  border-radius: 50%;
+}
+
+.mirror-glass-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(3, 10, 16, 0.72);
+  animation: mirror-fade 0.25s ease-out;
+}
+
+@keyframes mirror-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* An arched looking-glass in a gilded frame. */
+.mirror-glass {
+  position: relative;
+  width: min(620px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 44px 34px 26px;
+  color: #10293a;
+  background:
+    radial-gradient(ellipse at 30% 0%, rgba(255, 255, 255, 0.75), transparent 55%),
+    linear-gradient(165deg, #e6f7fa, #bfe3ea 45%, #9fcfdb);
+  border: 6px solid var(--gold);
+  border-radius: 300px 300px 18px 18px / 120px 120px 18px 18px;
+  box-shadow:
+    0 0 0 3px #8a6a2a,
+    0 0 0 9px #f2cd6e,
+    0 0 0 12px #5a3f12,
+    inset 0 0 40px rgba(30, 90, 120, 0.35),
+    0 20px 60px rgba(0, 0, 0, 0.6);
+  animation: mirror-rise 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+@keyframes mirror-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+
+.mirror-glass__sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.45) 42%, transparent 50%);
+  background-size: 250% 100%;
+  animation: mirror-sweep 1.4s ease-out 0.2s both;
+}
+
+@keyframes mirror-sweep {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -60% 0;
+  }
+}
+
+.mirror-glass__head {
+  text-align: center;
+}
+
+.mirror-glass__eyebrow {
+  margin: 0;
+  font-family: var(--font-plate);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #2a6a80;
+}
+
+.mirror-glass__title {
+  margin: 4px 0 14px;
+  font-family: var(--font-title);
+  font-size: 26px;
+  color: #10293a;
+}
+
+.mirror-glass__list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mirror-glass__item {
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.45);
+  border-left: 4px solid var(--gold);
+}
+
+.mirror-glass__pair {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 3px;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.mirror-glass__here {
+  color: #1e5a78;
+}
+
+.mirror-glass__is {
+  color: #8a6a2a;
+}
+
+.mirror-glass__there {
+  color: #7a2a14;
+}
+
+.mirror-glass__text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: #1a2a33;
+}
+
+.mirror-glass__close {
+  display: block;
+  margin: 18px auto 0;
+}
+
+.room-how {
+  margin: 8px 0 4px;
+  padding: 8px 14px;
+  background: rgba(7, 20, 28, 0.55);
+  border-left: 4px solid var(--sea);
+}
+
+.room-how summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-size: 15px;
+  color: var(--foam);
+  cursor: var(--cursor-hover, pointer);
+}
+
+.room-how__cost {
+  color: var(--marble-dim);
+}
+
+.room-how__about {
+  margin: 8px 0 6px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.room-how__list {
+  margin: 0 0 4px;
+  padding-left: 20px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--marble-dim);
+}
+
+.room-how__list li + li {
+  margin-top: 3px;
+}
+
+.shock-banner {
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  background: rgba(217, 168, 76, 0.12);
+  border: 2px solid var(--gold);
+}
+
+.shock-banner__eyebrow {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.shock-banner__title {
+  margin: 2px 0 4px;
+  font-family: var(--font-title);
+  font-size: 18px;
+  color: var(--gold-light);
+}
+
+.shock-banner__means {
+  margin: 0;
+  font-size: 15px;
+}
+
+.event-card__means {
+  margin: -6px 0 18px;
+  padding: 8px 12px;
+  font-size: 16px;
+  line-height: 1.4;
+  background: rgba(41, 168, 176, 0.14);
+  border-left: 3px solid var(--foam);
+}
+
+.event-card--shock {
+  border-color: var(--gold-light);
+}
+
+.gain {
+  color: var(--foam);
+}
+
+.loss {
+  color: var(--coral);
+}
+
+.stakes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stakes__label {
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-right: 4px;
+}
+
+.stakes__chip {
+  font: inherit;
+  font-size: 15px;
+  padding: 4px 12px;
+  color: var(--marble);
+  background: var(--abyss);
+  border: 2px solid var(--gold-dark);
+  cursor: var(--cursor-hover, pointer);
+}
+
+.stakes__chip.is-chosen {
+  color: var(--ink);
+  background: var(--gold-light);
+  border-color: var(--ink);
+}
+
+.stakes__chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.games {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.game {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  background: rgba(7, 20, 28, 0.55);
+  border: 2px solid rgba(138, 106, 42, 0.7);
+}
+
+.game__name {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 17px;
+  color: var(--gold-light);
+}
+
+.game__rules {
+  margin: 4px 0 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--marble-dim);
+}
+
+.game__odds {
+  margin: auto 0 0;
+  padding-top: 10px;
+  font-size: 13px;
+  color: var(--foam);
+}
+
+/* Three shells on a felt cloth; the picked one lifts to show what's under it. */
+.shells {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  height: 96px;
+  padding: 0 6px 10px;
+  background: radial-gradient(ellipse at 50% 85%, #2a5a4a, #183a30 70%);
+  border: 2px solid var(--ink);
+}
+
+.shell {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: var(--cursor-hover, pointer);
+}
+
+.shell:disabled {
+  cursor: not-allowed;
+}
+
+.shell__cup {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 0;
+  height: 40px;
+  border-radius: 50% 50% 8px 8px / 90% 90% 10px 10px;
+  background:
+    repeating-linear-gradient(90deg, rgba(122, 74, 40, 0.35) 0 4px, transparent 4px 10px),
+    linear-gradient(#f4d9b0, #d9a878);
+  border: 3px solid var(--ink);
+  transition: transform 260ms ease-out;
+}
+
+.shell:not(:disabled):hover .shell__cup {
+  transform: translateY(-4px);
+}
+
+.shell.is-lifted .shell__cup {
+  transform: translateY(-30px) rotate(-8deg);
+}
+
+.shell.is-picked .shell__cup {
+  border-color: var(--gold-light);
+  box-shadow: 0 0 10px rgba(242, 205, 110, 0.7);
+}
+
+.shell__pearl {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffffff, #dfe8ef 60%, #9fb4c4);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+/* The Kraken's Wheel: a conic disc that spins to the result under a fixed pointer. */
+.wheel {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  margin: 4px auto 0;
+}
+
+.wheel__disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 4px solid var(--ink);
+  box-shadow: 0 0 0 3px var(--gold-dark);
+  transition: transform 1.8s cubic-bezier(0.15, 0.85, 0.25, 1);
+}
+
+.wheel__pointer {
+  position: absolute;
+  z-index: 1;
+  top: -10px;
+  left: 50%;
+  margin-left: -9px;
+  border: 9px solid transparent;
+  border-top: 16px solid var(--gold-light);
+  filter: drop-shadow(0 2px 0 var(--ink));
+}
+
+.wheel__spin {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.wheel__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.wheel__legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border: 1px solid var(--ink);
+}
+
+.outcome {
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  font-size: 16px;
+  line-height: 1.4;
+  animation: card-in 220ms ease-out;
+}
+
+.outcome--win {
+  background: rgba(41, 168, 176, 0.16);
+  border-left: 4px solid var(--foam);
+}
+
+.outcome--lose {
+  background: rgba(232, 98, 74, 0.12);
+  border-left: 4px solid var(--coral);
+}
+
+.fee-table {
+  width: 100%;
+  margin: 12px 0 4px;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.fee-table th,
+.fee-table td {
+  padding: 5px 6px;
+  text-align: left;
+  border-bottom: 1px solid rgba(138, 106, 42, 0.35);
+}
+
+.fee-table th {
+  font-family: var(--font-title);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.maro {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.maro li {
+  margin: 6px 0;
+  padding: 8px 12px;
+  font-size: 16px;
+  font-style: italic;
+  line-height: 1.4;
+  background: rgba(7, 20, 28, 0.55);
+  border-left: 3px solid var(--gold);
+}
+
+/* --- Chelo's tour ------------------------------------------------------------------------------ */
+
+.tour {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--gap);
+  background: rgba(7, 20, 28, 0.35);
+}
+
+/* A spotlight on the building the camera glided to; the city says where it is on screen. */
+.tour--building {
+  background: radial-gradient(ellipse 280px 230px at var(--spot-x) var(--spot-y), transparent 55%, rgba(7, 20, 28, 0.62) 100%);
+}
+
+/* While the tour shows a building, the HUD steps aside so edge buildings aren't hidden under it. */
+.hud > * {
+  transition: opacity 0.3s;
+}
+
+.app:has(.tour--building) .hud > * {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tour[data-hud] {
+  background: rgba(7, 20, 28, 0.2);
+}
+
+.tour[data-hud="passage"] {
+  align-items: flex-start;
+  padding-top: 110px;
+}
+
+.app:has(.tour[data-hud="season"]) .hud__season,
+.app:has(.tour[data-hud="passage"]) .hud__passage {
+  z-index: 26;
+  outline: 3px solid var(--gold-light);
+  outline-offset: 4px;
+  animation: tour-pulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes tour-pulse {
+  to {
+    outline-color: rgba(242, 205, 110, 0.35);
+    outline-offset: 8px;
+  }
+}
+
+.tour__panel {
+  display: flex;
+  gap: 18px;
+  align-items: flex-end;
+  width: min(940px, 100%);
+  max-height: calc(100vh - 2 * var(--gap));
+  padding: 14px 20px 12px;
+  overflow-y: auto;
+}
+
+.tour__guide {
+  flex: none;
+  align-self: center;
+}
+
+.tour__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tour__body .chelo-says {
+  min-height: 0;
+  margin-bottom: 8px;
+  padding: 8px 14px;
+}
+
+.tour__eyebrow {
+  margin: 0;
+  font-family: var(--font-plate);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--foam);
+}
+
+.tour__title {
+  margin: 2px 0 6px;
+  font-family: var(--font-title);
+  font-size: 24px;
+  color: var(--gold-light);
+}
+
+.tour__about {
+  margin: 0 0 6px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.tour__lines {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--marble-dim);
+}
+
+.tour__lines li + li {
+  margin-top: 3px;
+}
+
+.tour__cost {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--foam);
+}
+
+.tour__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.tour__steps {
+  display: flex;
+  gap: 8px;
+}
+
+.tour__pips {
+  display: flex;
+  gap: 5px;
+}
+
+.tour__pips i {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--gold-dark);
+}
+
+.tour__pips i.is-done {
+  background: var(--gold-dark);
+}
+
+.tour__pips i.is-now {
+  background: var(--gold-light);
+  border-color: var(--gold-light);
+}
+
+@media (max-width: 640px) {
+  .tour__guide,
+  .tour__pips {
+    display: none;
+  }
+}
+
+/* --- The season report, on a scroll ------------------------------------------------------------- */
+
+.report-backdrop {
+  overflow-y: auto;
+}
+
+.scroll-sheet.report {
+  width: min(820px, calc(100% - 64px));
+  margin: auto;
+}
+
+.report__paper {
+  padding: 30px 14px 30px 40px;
+  text-align: left;
+}
+
+/* The paper keeps its Greek-key border still; the writing scrolls inside it. */
+.report__scroll {
+  max-height: calc(100vh - 200px);
+  padding-right: 26px;
+  overflow-y: auto;
+}
+
+.report .num {
+  color: inherit;
+}
+
+.report__paper .scroll-sheet__eyebrow,
+.report__paper .scroll-sheet__title {
+  text-align: center;
+}
+
+.report__wait {
+  text-align: center;
+  font-size: 17px;
+}
+
+.report__section {
+  margin: 18px 0 0;
+}
+
+.report__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 0 0 8px;
+  padding-bottom: 4px;
+  font-family: var(--font-title);
+  font-size: 19px;
+  color: #3a2410;
+  border-bottom: 2px solid #b89a60;
+}
+
+.report__heading-note {
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  font-weight: 400;
+  color: #6a4a1a;
+}
+
+.report__small {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #5a4220;
+}
+
+.report__pace {
+  padding: 12px 14px;
+  background: rgba(255, 245, 215, 0.45);
+  border: 2px solid #b89a60;
+}
+
+.report__pace-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.report__pace-big {
+  font-family: var(--font-title);
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  color: #1e3a58;
+}
+
+.report__pace-words {
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+.report__pace-sub {
+  display: block;
+  font-size: 15px;
+  color: #5a4220;
+}
+
+.report__bar {
+  position: relative;
+  height: 16px;
+  margin: 14px 0 22px;
+  background: rgba(58, 42, 16, 0.15);
+  border: 2px solid #3a2a10;
+}
+
+.report__bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: repeating-linear-gradient(90deg, #1e3a58 0 10px, #24476b 10px 12px);
+}
+
+.report__bar-target {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 3px;
+  background: #a8201a;
+}
+
+.report__bar-target i {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-style: normal;
+  white-space: nowrap;
+  color: #a8201a;
+}
+
+.report__marks {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report__marks li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.report__stamp {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  font-family: var(--font-title);
+  font-size: 22px;
+  font-weight: 700;
+  border: 3px double currentColor;
+  border-radius: 50%;
+  transform: rotate(-8deg);
+}
+
+.report__stamp--A {
+  color: #3f6b2a;
+}
+
+.report__stamp--B {
+  color: #1e5a78;
+}
+
+.report__stamp--C {
+  color: #9a6a10;
+}
+
+.report__stamp--D {
+  color: #a8201a;
+}
+
+.report__mark-label {
+  display: block;
+  font-family: var(--font-title);
+  font-size: 15px;
+  color: #3a2410;
+}
+
+.report__mark-text {
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.report__tides {
+  display: flex;
+  gap: 6px;
+}
+
+.report__tide {
+  display: inline-block;
+  width: 34px;
+  height: 34px;
+  border: 3px solid #3a2a10;
+  background: #ecd9ae;
+}
+
+.report__legend .report__tide {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  vertical-align: -2px;
+  margin-right: 5px;
+}
+
+.report__tide--work {
+  background: #1e3a58;
+}
+
+.report__tide--market {
+  background: #7c9f57;
+}
+
+.report__tide--exchange {
+  background: #d9a84c;
+}
+
+.report__tide--business {
+  background: #8a5a9a;
+}
+
+.report__tide--rested,
+.report__tide--skipped {
+  background: repeating-linear-gradient(45deg, #ecd9ae 0 4px, #c9b080 4px 7px);
+}
+
+.report__tide--care {
+  background: #c97a5a;
+}
+
+.report__tide--hunger {
+  background: #a8201a;
+}
+
+.report__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 8px 0 0;
+  padding: 0;
+  font-size: 14px;
+  list-style: none;
+}
+
+.report__money {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.report__ledger-title {
+  margin: 0 0 4px;
+  font-family: var(--font-plate);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #6a4a1a;
+}
+
+.report__ledger dl {
+  margin: 0;
+}
+
+.report__ledger dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 15px;
+  border-bottom: 1px dotted #b89a60;
+}
+
+.report__ledger dd {
+  margin: 0;
+}
+
+.report__ledger .report__ledger-total {
+  font-weight: 700;
+  border-bottom: 0;
+}
+
+.report__shares {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.report__shares th,
+.report__shares td {
+  padding: 4px 6px;
+  text-align: right;
+  border-bottom: 1px dotted #b89a60;
+}
+
+.report__shares th:first-child,
+.report__shares thead th:first-child {
+  text-align: left;
+}
+
+.report__shares thead th {
+  font-family: var(--font-plate);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6a4a1a;
+}
+
+.report__up {
+  color: #3f6b2a;
+}
+
+.report__down {
+  color: #a8201a;
+}
+
+.report__chelo {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin: 14px 0 0;
+  padding: 12px 16px;
+  color: var(--marble);
+  background: var(--navy);
+  border: 3px solid #3a2a10;
+}
+
+.report__chelo-name {
+  margin: 0 0 4px;
+  font-family: var(--font-plate);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--foam);
+}
+
+.report__chelo-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.report__chelo-list li {
+  animation: chelo-in 0.5s ease-out both;
+}
+
+.report__chelo-list li + li {
+  margin-top: 4px;
+}
+
+@keyframes chelo-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+}
+
+.report__paper .mirror-button {
+  margin-top: 18px;
+}
+
+.report__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 22px 0 8px;
+  font-size: 15px;
+}
+
+@media (max-width: 640px) {
+  .scroll-sheet.report {
+    width: calc(100% - 32px);
+  }
+
+  .report__paper {
+    padding: 26px 8px 26px 16px;
+  }
+
+  .report__scroll {
+    padding-right: 8px;
+  }
+
+  .report__money {
+    grid-template-columns: 1fr;
+  }
+
+  .report__tide {
+    width: 26px;
+    height: 26px;
+  }
+}

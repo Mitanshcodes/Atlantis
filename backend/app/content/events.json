@@ -1,0 +1,130 @@
+{
+  "shocks": {
+    "jellyfish_bloom": {
+      "title": "The Great Jellyfish Bloom",
+      "story": "Moon jellies drifted into the kelp beds overnight, stinging every farmer who tries to harvest.",
+      "means": "Kelp costs 50% more this season."
+    },
+    "beached_whale": {
+      "title": "A Whale Comes to Rest",
+      "story": "An old whale settled on the outer reef, and the whole city is feasting on the fish that followed.",
+      "means": "Kelp is 40% cheaper this season. Fill your cellar."
+    },
+    "crab_raid": {
+      "title": "The Crab Raid",
+      "story": "Giant spider crabs marched through the granaries and snipped every kelp bundle in reach.",
+      "means": "Kelp costs 35% more this season."
+    },
+    "glowing_tide": {
+      "title": "The Glowing Tide",
+      "story": "Glowing plankton lit the canals, and the kelp beds grew twice as fast.",
+      "means": "Kelp is 25% cheaper this season."
+    },
+    "pearl_strike": {
+      "title": "The Pearl Divers Strike",
+      "story": "The pearl divers won't dive until the Council mends their cracked air-bells.",
+      "means": "Pearls cost 25% more this season."
+    },
+    "counterfeit_pearls": {
+      "title": "Counterfeit Pearls",
+      "story": "Painted fish-eyes are being sold as pearls, and now every buyer haggles.",
+      "means": "Pearls sell for 20% less this season."
+    },
+    "diving_bell_tourists": {
+      "title": "Tourists in Diving Bells",
+      "story": "Surface nobles came down in brass diving bells and bought pearls by the fistful.",
+      "means": "Pearls cost 20% more, kelp 10% more, this season."
+    },
+    "kraken_sighting": {
+      "title": "A Kraken in the Shipping Lanes",
+      "story": "A tentacle thick as a temple column rose beside a Leviathan Line ship.",
+      "means": "Leviathan Line fell 15%, and storms are likelier this season."
+    },
+    "royal_contract": {
+      "title": "A Royal Contract",
+      "story": "The Queen of the Coral Isles chartered the Leviathan Line for a year.",
+      "means": "Leviathan Line shares jumped 20%."
+    },
+    "new_trade_route": {
+      "title": "Oro's Daughter Finds a New Route",
+      "story": "Captain Oro's youngest found a safer current around the Shark Teeth.",
+      "means": "Oro & Daughters shares rose 12%."
+    },
+    "deepcoral_map": {
+      "title": "A Treasure Map Turns Up",
+      "story": "Deepcoral bought a \"genuine\" treasure map from a stranger in a tavern.",
+      "means": "Deepcoral shares jumped 50%. The map may be fake."
+    },
+    "current_reversal": {
+      "title": "The Current Runs Backwards",
+      "story": "For one day the great current ran backwards, and every ship turned home.",
+      "means": "Every house fell 10%. Panics can be a chance to buy."
+    },
+    "seahorse_derby": {
+      "title": "The Seahorse Derby",
+      "story": "Derby winners showered pearls on their jockeys. Oro's crew bet on the slowest seahorse.",
+      "means": "Pearls cost 15% more; Oro & Daughters slipped 5%."
+    },
+    "eel_blackout": {
+      "title": "The Eel Blackout",
+      "story": "The eels that light the Grand Market went on strike. Stalls trade by lantern.",
+      "means": "Kelp costs 20% more; pearls sell for 10% less."
+    }
+  },
+  "deck": {
+    "kelp_blight_scare": {
+      "title": "Blight in the Kelp Beds",
+      "means": "Kelp costs more this season. A full cellar doesn't care."
+    },
+    "storm_warning": {
+      "title": "Storm Warning",
+      "means": "Voyages are likelier to fail this season."
+    },
+    "fraud_charge": {
+      "title": "A Charge You Don't Recognize",
+      "means": "Dispute it this season for free, or it's gone."
+    },
+    "pickpocket": {
+      "title": "Pickpocketed",
+      "means": "Thieves take Purse coin. The Vault is safe."
+    },
+    "roof_leak": {
+      "title": "The Roof Leaks",
+      "means": "Paid from your Purse, then Vault, then card. Savings soften it."
+    },
+    "surface_boom": {
+      "title": "Boom on the Surface",
+      "means": "Silk and Silkwind are riding high this season."
+    },
+    "tavern_rumor": {
+      "title": "Tavern Talk",
+      "means": "Rumors are usually right. Only the Herald is always right."
+    },
+    "lucky_salvage": {
+      "title": "Lucky Salvage",
+      "means": "Found coin, straight into your Purse."
+    },
+    "grins_offer": {
+      "title": "Grin Has an Offer",
+      "means": "100◈ from Grin is 150◈ next season."
+    },
+    "pearl_exchange": {
+      "title": "The Pearl Exchange",
+      "means": "\"Guaranteed\" 40% a season. Who could pay that?"
+    },
+    "council_rate_change": {
+      "title": "The Council Moves the Vault Rate",
+      "means": "Your Vault earns a different rate now."
+    }
+  },
+  "moments": {
+    "scroll": "A New Scroll",
+    "debasement": "The Coin Is Debased",
+    "clue": "Word Reaches You",
+    "passage_bought": "Passage Secured",
+    "fraud_lost": "The Charge Stands",
+    "scam_revealed": "The Pearl Exchange Is Gone",
+    "card_frozen": "Card Frozen",
+    "market_shock": "Market News"
+  }
+}

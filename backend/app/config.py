@@ -245,6 +245,61 @@ GRIN_STANDING_TRIGGER = 550
 GRIN_PURSE_TRIGGER = 50
 PEARL_EXCHANGE_PROMISE = 0.40  # the "guaranteed" rate in the pitch
 
+# --- Market shocks: one unexpected market event every season ------------------------------------
+# Words (title, story, what it means) live in app/content/events.json under the same ids.
+
+
+@dataclass(frozen=True)
+class MarketShock:
+    weight: float = 1.0
+    goods: Optional[Dict[Good, float]] = None  # price multiplier for the rest of the season
+    houses: Optional[Dict[House, float]] = None  # one-off share price jump
+    storm: int = 0  # storm levels added for this season's voyages
+    seasons: Tuple[Season, ...] = tuple(Season)  # when it can happen
+
+
+_VOYAGE_SEASONS = (Season.SPRING, Season.SUMMER, Season.AUTUMN)
+
+MARKET_SHOCKS: Dict[str, MarketShock] = {
+    "jellyfish_bloom": MarketShock(goods={Good.KELP: 1.5}),
+    "beached_whale": MarketShock(goods={Good.KELP: 0.6}),
+    "crab_raid": MarketShock(goods={Good.KELP: 1.35}),
+    "glowing_tide": MarketShock(goods={Good.KELP: 0.75}),
+    "pearl_strike": MarketShock(goods={Good.PEARLS: 1.25}),
+    "counterfeit_pearls": MarketShock(goods={Good.PEARLS: 0.8}),
+    "diving_bell_tourists": MarketShock(goods={Good.PEARLS: 1.2, Good.KELP: 1.1}),
+    "kraken_sighting": MarketShock(houses={House.LEVIATHAN: 0.85}, storm=1, seasons=_VOYAGE_SEASONS),
+    "royal_contract": MarketShock(houses={House.LEVIATHAN: 1.2}, seasons=_VOYAGE_SEASONS),
+    "new_trade_route": MarketShock(houses={House.ORO: 1.12}, seasons=_VOYAGE_SEASONS),
+    "deepcoral_map": MarketShock(houses={House.DEEPCORAL: 1.5}, seasons=_VOYAGE_SEASONS),
+    "current_reversal": MarketShock(
+        houses={House.ORO: 0.9, House.LEVIATHAN: 0.9, House.DEEPCORAL: 0.9}, seasons=_VOYAGE_SEASONS
+    ),
+    "seahorse_derby": MarketShock(goods={Good.PEARLS: 1.15}, houses={House.ORO: 0.95}),
+    "eel_blackout": MarketShock(goods={Good.KELP: 1.2, Good.PEARLS: 0.9}),
+}
+
+# --- The Drowned Bell: Nerissa's games -----------------------------------------------------------
+# Odds are shown to the player as they are. Every game pays back a little less than it takes.
+
+
+@dataclass(frozen=True)
+class GameSpec:
+    #: (chance, multiple of the stake paid back); chances sum to 1. The pick-a-shell game is a
+    #: 1-in-``choices`` guess instead.
+    outcomes: Tuple[Tuple[float, float], ...] = ()
+    choices: int = 0
+    payout: float = 0.0
+
+
+GAMES: Dict[str, GameSpec] = {
+    "shells": GameSpec(choices=3, payout=2.5),  # 1 in 3 to win 2.5x: pays back 83%
+    "wheel": GameSpec(outcomes=((0.71, 0.0), (0.20, 2.0), (0.07, 4.0), (0.02, 10.0))),  # pays back 88%
+}
+GAMBLE_MIN = 5
+GAMBLE_MAX = 100
+GAMES_PER_SEASON = 3
+
 # --- Scrolls --------------------------------------------------------------------------------------
 
 BOUGHT_LOW_MIN_KELP = 20  # engine default
@@ -253,6 +308,18 @@ DEBT_SPIRAL_SEASONS = 2
 MIN_ONLY_TOLERANCE = 1.5  # paying under 1.5x the minimum counts as "only the minimum"
 CREDIT_BUILT_STANDING = 580
 DIVERSIFIED_HOUSES = 3
+HOUSE_ALWAYS_WINS_LOSS = 100  # coin lost at the Drowned Bell over the year
+
+# --- Season report (the report card at each season's end) ----------------------------------------
+
+REPORT_IDLE_TIDES = (0, 1, 3)  # most idle tides (rested or skipped) for an A, B and C; more is a D
+REPORT_IDLE_PURSE = 500  # Purse coin left at season end that counts as sitting idle
+REPORT_SAFE_PURSE = 300  # at or under this, with the rest in the Vault, counts as well kept
+# On course: net worth as a share of next season's Passage price at the end of Spring, Summer, Autumn.
+# Working every tide and nothing else lands about 10 points under each, and never boards.
+REPORT_PACE_TARGETS = (0.55, 0.70, 0.85)
+REPORT_PACE_STEPS = (0.10, 0.25)  # how far under the target still earns a B, then a C
+REPORT_MIRROR_TOPICS = 3  # Modern Mirror lessons on each report
 
 # --- Businesses (only if ahead) -------------------------------------------------------------------
 

@@ -13,6 +13,7 @@ from .nessie.seed import initial_effects
 from .nessie.sync import Sync
 from .nessie.operations import expand_effects
 from .ai.chronicle import chronicle
+from .ai.report import note as report_note
 
 def create_app(settings=None, client=None, engine_adapter=None, background=True):
     settings = settings or Settings.env()
@@ -135,6 +136,35 @@ def create_app(settings=None, client=None, engine_adapter=None, background=True)
             return cached
         result = chronicle(season, events)
         store.cache(key, result)
+        return result
+
+    def report_of(run_id: str, season: str) -> dict:
+        if not callable(getattr(rules, 'season_report', None)):
+            raise HTTPException(404, 'This engine writes no season reports')
+        with store.connect() as db:
+            state = read_run(db, run_id)
+        try:
+            return rules.season_report(state, season)
+        except LookupError as exc:
+            raise HTTPException(404, str(exc)) from None
+
+    @app.get('/api/runs/{run_id}/report')
+    def get_report(run_id: str, season: str):
+        """The season's report card: marks, tides, coin, investments, the Modern Mirror (whole coin)."""
+        report = report_of(run_id, season)
+        report.pop('facts', None)
+        return report
+
+    @app.get('/api/runs/{run_id}/report/note')
+    def get_report_note(run_id: str, season: str):
+        """Chelo's note on the report: OpenAI from the engine's facts, else a hand-written line."""
+        key = f'report-note:{run_id}:{season}'
+        cached = store.cached(key)
+        if cached:
+            return cached
+        result = report_note(report_of(run_id, season))
+        if result['source'] == 'openai':
+            store.cache(key, result)
         return result
 
     return app

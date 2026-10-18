@@ -1,8 +1,8 @@
 import type { Ledger, Run, State } from "../types";
+import { SCROLL_COUNT } from "./copy";
 import { fmt, viewOf, type GameView as HudView } from "./view";
 
 const SEASONS = ["Spring", "Summer", "Autumn", "Long Dark"] as const;
-const SCROLL_COUNT = 12;
 
 /** The season, the money, the news and the Passage meter, laid over the corners of the city. */
 export function Hud({
@@ -10,11 +10,14 @@ export function Hud({
   ledger,
   onLedger,
   onScrolls,
+  onGuide,
 }: {
   run: Run;
   ledger?: Ledger | null;
   onLedger?: () => void;
   onScrolls?: () => void;
+  /** Replays Chelo's tour of the city. */
+  onGuide?: () => void;
 }) {
   const { state } = run;
   const view = viewOf(state);
@@ -24,6 +27,11 @@ export function Hud({
       <div className="hud__top-right">
         <Stats state={state} />
         <div className="hud__tabs">
+          {onGuide && (
+            <button className="chip chip--button" onClick={onGuide} title="Chelo's tour of the city">
+              Guide
+            </button>
+          )}
           <button className="chip chip--button" onClick={onScrolls}>
             Scrolls {view.scrolls?.length ?? 0}/{SCROLL_COUNT}
           </button>
@@ -79,7 +87,7 @@ function SeasonPanel({ state, view }: { state: State; view: HudView }) {
         </span>
       </div>
       <p className="hud__hint">
-        Only work and trades spend a tide. Walking, talking and the Bank are free.
+        Work and trades cost a tide. Everything else is free.
       </p>
       {view.hungry_next && <p className="hud__warn">A hungry season ahead: two fewer tides.</p>}
     </section>

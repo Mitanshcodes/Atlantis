@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Callable, Dict, List, Type
 
 from app import config
-from app.engine import business, events, exchange, market, money, scrolls
+from app.engine import business, events, exchange, market, money, report, scrolls
 from app.engine.actions import (
     TIDE_ACTIONS,
     ActionError,
@@ -28,6 +28,7 @@ from app.engine.actions import (
     EndSeason,
     EndYear,
     ExchangeVisit,
+    Gamble,
     InvestPearlExchange,
     MarketTrip,
     OpenSecuredCard,
@@ -121,6 +122,8 @@ def step(s: GameState, action: object) -> None:
     elif spends_tide or isinstance(action, EndSeason):
         money.require(s.phase == Phase.PLAYING and s.tides_left > 0, "no_tides", "No tides left this season.")
     handler(s, action)
+    if type(action) in _VISIT_PLACES:
+        s.record("trip", place=_VISIT_PLACES[type(action)], free=free_place is not None)
     if free_place is not None:
         s.free_visits_used.append(free_place)
     if spends_tide:
@@ -155,6 +158,7 @@ def _pass_tide(s: GameState) -> None:
     if s.is_long_dark:
         s.phase = Phase.FINAL_CALL
         s.record("final_call", passage_price=money.passage_price(s))
+        report.snapshot(s, "end")
     else:
         _end_season(s)
         s.season += 1
@@ -170,7 +174,7 @@ def _end_season(s: GameState) -> None:
     s.hungry_next = market.eat_kelp(s)["hungry"]
     market.spoil_kelp(s)
     events.expire_offers(s)
-    report = money.settle_season(s)
+    settled = money.settle_season(s)
     exchange.charge_index_fee(s)
     scrolls.check(s)
     s.record(
@@ -180,8 +184,9 @@ def _end_season(s: GameState) -> None:
         vault=s.vault,
         debt=money.total_debt(s),
         hungry=s.hungry_next,
-        **report,
+        **settled,
     )
+    report.snapshot(s, "end")
 
 
 def _open_season(s: GameState) -> None:
@@ -191,6 +196,7 @@ def _open_season(s: GameState) -> None:
     spec = money.class_spec(s)
     s.tide = 0
     s.flags.visited = []
+    s.flags.games_this_season = 0
     s.free_visits_used = []
     market.open_season(s, r)
     exchange.open_season(s)
@@ -211,6 +217,7 @@ def _open_season(s: GameState) -> None:
     s.tides_total = max(config.MIN_TIDES, tides)
     events.schedule(s, r)
     events.announce(s)
+    report.snapshot(s, "open")
 
 
 # --- Action handlers ------------------------------------------------------------------------------
@@ -245,6 +252,46 @@ def _end_season_now(s: GameState, _: EndSeason) -> None:
         _pass_tide(s)
 
 
+def _gamble(s: GameState, a: Gamble) -> None:
+    """Stake Purse coin on a game; the roll is seeded like everything else."""
+    spec = config.GAMES.get(a.game)
+    money.require(spec is not None, "unknown_game", "Nerissa doesn't know that game.")
+    money.require(s.phase != Phase.ENDED, "game_over", "The tavern is closed.")
+    money.require(
+        s.flags.games_this_season < config.GAMES_PER_SEASON,
+        "no_games_left",
+        f"Nerissa deals {config.GAMES_PER_SEASON} games a season. Come back next season.",
+    )
+    money.require(
+        isinstance(a.stake, int) and config.GAMBLE_MIN <= a.stake <= config.GAMBLE_MAX,
+        "invalid_amount",
+        f"Stakes are {config.GAMBLE_MIN}◈ to {config.GAMBLE_MAX}◈.",
+    )
+    if spec.choices:
+        money.require(a.pick is not None and 1 <= a.pick <= spec.choices, "invalid_pick", "Pick a shell.")
+    s.visit(Place.DROWNED_BELL)
+    money.spend(s, a.stake, f"Drowned Bell wager: {a.game}")
+    r = rng(s)
+    if spec.choices:
+        hidden = r.randint(1, spec.choices)
+        multiple = spec.payout if hidden == a.pick else 0.0
+        detail = {"pick": a.pick, "pearl": hidden}
+    else:
+        roll, multiple, detail = r.random(), 0.0, {}
+        for chance, pays in spec.outcomes:
+            if roll < chance:
+                multiple = pays
+                break
+            roll -= chance
+        detail = {"multiple": multiple}
+    won = money.coin(a.stake * multiple)
+    money.earn(s, won, f"Drowned Bell winnings: {a.game}")
+    s.flags.games_this_season += 1
+    s.flags.games_played += 1
+    s.flags.gamble_net += won - a.stake
+    s.record("gamble", game=a.game, stake=a.stake, won=won, **detail)
+
+
 def _end_year(s: GameState, _: EndYear) -> None:
     money.require(s.phase == Phase.FINAL_CALL, "too_early", "The last ship hasn't called yet.")
     scrolls.finish(s)
@@ -272,5 +319,6 @@ _HANDLERS: Dict[Type, Callable[[GameState, object], None]] = {
     DisputeCharge: lambda s, a: events.dispute_charge(s),
     InvestPearlExchange: lambda s, a: events.invest_pearl_exchange(s, a.amount),
     BuyPassage: lambda s, a: money.buy_passage(s),
+    Gamble: _gamble,
     EndYear: _end_year,
 }

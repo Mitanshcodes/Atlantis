@@ -1,0 +1,106 @@
+{
+  "_note": "Chelo's first-time tour and the opening story. Building steps pan the city and show buildings.json's about/do. 'story' lines type out one by one on the opening's cinematic screen; {name}, {class}, {coin}, {passage} are filled in.",
+  "steps": [
+    {
+      "id": "welcome",
+      "title": "Welcome to Atlantis",
+      "chelo": "Quick tour before the tide turns.",
+      "lines": [
+        "Goal: buy Passage on the last ship, owing nothing.",
+        "4 seasons, 6 tides each. A tide is one move."
+      ]
+    },
+    {
+      "id": "season",
+      "hud": "season",
+      "title": "Your tides",
+      "chelo": "They run out faster than you think.",
+      "lines": [
+        "Work, Market trips and Exchange visits cost tides. Everything else is free."
+      ]
+    },
+    {
+      "id": "guild_hall",
+      "building": "guild_hall",
+      "chelo": "Your wage starts here."
+    },
+    {
+      "id": "market",
+      "building": "market",
+      "chelo": "Your household eats every season. Plan for it."
+    },
+    {
+      "id": "bank",
+      "building": "bank",
+      "chelo": "Free to visit, as often as you like."
+    },
+    {
+      "id": "harbor",
+      "building": "harbor",
+      "chelo": "Your way out. Also where coin grows, or sinks."
+    },
+    {
+      "id": "drowned_bell",
+      "building": "drowned_bell",
+      "chelo": "Fun. Just remember who wins in the end."
+    },
+    {
+      "id": "black_reef",
+      "building": "black_reef",
+      "chelo": "Grin always says yes. That's the problem."
+    },
+    {
+      "id": "circle",
+      "building": "circle",
+      "chelo": "Keep your promises to them."
+    },
+    {
+      "id": "council",
+      "building": "council",
+      "chelo": "When the Council speaks, prices move."
+    },
+    {
+      "id": "passage",
+      "hud": "passage",
+      "title": "The price of Passage",
+      "chelo": "It only goes up.",
+      "lines": [
+        "Your goal, and how close you are. Idle coin falls behind it."
+      ]
+    },
+    {
+      "id": "go",
+      "title": "Off you go",
+      "chelo": "I'll see you at the end of each season.",
+      "lines": [
+        "Click a building to go in. Drag to look around.",
+        "Every room has a Modern Mirror: what it is in the real world."
+      ]
+    }
+  ],
+  "story": [
+    {
+      "text": "For three hundred years, the tides of Atlantis never lied."
+    },
+    {
+      "text": "This spring, the Council read them one last time."
+    },
+    {
+      "text": "When the Long Dark ends, Atlantis sinks.",
+      "style": "big"
+    },
+    {
+      "text": "One ship will leave. Passage costs {passage}◈, and the price rises every season."
+    },
+    {
+      "text": "It carries no one who owes a single coin."
+    },
+    {
+      "text": "You are {name}, {class}, with {coin}◈ to your name."
+    },
+    {
+      "text": "Four seasons. Six tides each. Make them count.",
+      "style": "gold"
+    }
+  ]
+}

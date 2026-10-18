@@ -1,4 +1,4 @@
-import { ActButton, Basket, Facts, Section, can, view, type RoomProps } from "./kit";
+import { ActButton, Basket, Facts, Section, ShockBanner, can, view, type RoomProps } from "./kit";
 import { GOODS, HOUSES, HOUSE_NOTES } from "../copy";
 import { fmt } from "../view";
 
@@ -12,6 +12,7 @@ export function MarketRoom({ room }: { room: RoomProps }) {
   const cellar = v.limits?.cellar ?? 60;
   return (
     <>
+      <ShockBanner run={room.run} />
       <Section title="Today's prices">
         <Basket
           room={room}
@@ -56,6 +57,7 @@ export function ExchangeRoom({ room }: { room: RoomProps }) {
         : false;
   return (
     <>
+      <ShockBanner run={room.run} />
       <Section title="Shipping houses" aside={<span className="tag tag--tide">{STORMS[v.storm_level ?? 0]}</span>}>
         <Basket
           room={room}

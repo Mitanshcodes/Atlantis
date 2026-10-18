@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ActionInput } from "../store";
 import type { Run } from "../types";
-import { EVENT_TITLES, MOMENT_TITLES, SCROLLS } from "./copy";
+import { DECK, EVENT_TITLES, MOMENT_TITLES, SCROLLS, SHOCKS } from "./copy";
 import { toMinor, viewOf, type Moment } from "./view";
 
 interface Props {
@@ -25,7 +25,16 @@ export function EventCard({ moment, run, busy, act, onDone, onGo }: Props) {
     const earned = viewOf(run.state).scrolls?.length ?? 0;
     return <AchievementCard name={scroll.name} how={scroll.how} earned={earned} onDone={onDone} />;
   }
-  const tone = moment.kind === "scroll" ? "event-card--scroll" : moment.event === "lucky_salvage" ? "event-card--good" : "";
+  const shock = moment.kind === "market_shock" && moment.shock ? SHOCKS[moment.shock] : undefined;
+  const means = shock?.means ?? (moment.kind === "event" ? DECK[moment.event ?? ""]?.means : undefined);
+  const tone =
+    moment.kind === "scroll"
+      ? "event-card--scroll"
+      : moment.kind === "market_shock"
+        ? "event-card--shock"
+        : moment.event === "lucky_salvage"
+          ? "event-card--good"
+          : "";
 
   let actions = (
     <button className="button" onClick={onDone} autoFocus>
@@ -83,11 +92,18 @@ export function EventCard({ moment, run, busy, act, onDone, onGo }: Props) {
   return (
     <div className="card-backdrop">
       <section className={`panel event-card ${tone}`} role="alertdialog" aria-labelledby="event-title">
-        <p className="event-card__eyebrow">{moment.kind === "scroll" ? "Scroll earned" : run.state.season}</p>
+        <p className="event-card__eyebrow">
+          {moment.kind === "scroll"
+            ? "Scroll earned"
+            : shock
+              ? `Market news · ${moment.season ?? run.state.season}`
+              : moment.season ?? run.state.season}
+        </p>
         <h2 id="event-title" className="event-card__title">
-          {scroll ? scroll.name : title}
+          {scroll ? scroll.name : shock ? shock.title : title}
         </h2>
-        <p className="event-card__text">{scroll ? scroll.how : moment.text}</p>
+        <p className="event-card__text">{scroll ? scroll.how : shock ? shock.story : moment.text}</p>
+        {means && <p className="event-card__means">{means}</p>}
         <div className="event-card__actions">{actions}</div>
       </section>
     </div>

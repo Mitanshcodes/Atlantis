@@ -46,6 +46,9 @@ const NPC_TALK_GAP = 20;
 const ZOOMS = [1, 2, 3, 4] as const; // whole steps keep pixel art crisp
 const PLATE_FONT = '"Silkscreen", monospace';
 const SHADOW = { x: 4, y: 3, color: 0x0a1a22, alpha: 0.28 } as const;
+/** The tour's camera glide, in ms, and how far above centre the building sits (a share of the view). */
+const TOUR_PAN = 900;
+const TOUR_LIFT = 0.12;
 
 /** The city: ground, decor, buildings you can walk into, and the player. */
 export class City extends Phaser.Scene {
@@ -63,11 +66,20 @@ export class City extends Phaser.Scene {
   private rise!: Phaser.GameObjects.Particles.ParticleEmitter;
   private inside: BuildingId | null = null;
   private hovered: BuildingId | null = null;
+  /** The building Chelo's tour is showing, and where it last was on screen. */
+  private touring: BuildingId | null = null;
+  private lastSpot = "";
   private lastAnchor = "";
   private buildingSprites = new Map<BuildingId, Phaser.GameObjects.Image[]>();
   private plates = new Map<BuildingId, { box: Phaser.GameObjects.Graphics; text: Phaser.GameObjects.Text }>();
   private press?: { x: number; y: number; scrollX: number; scrollY: number };
   private dragging = false;
+  /**
+   * Whether the current click began on the city. Phaser hears every mouse release on the page,
+   * so a click on a React button (Leave, Skip story) would otherwise also hop the player to
+   * whatever building is under the pointer.
+   */
+  private pressedHere = false;
   private fitDepthFade: () => void = () => undefined;
   private updaters: Array<(time: number, delta: number) => void> = [];
 
@@ -123,6 +135,7 @@ export class City extends Phaser.Scene {
     const offs = [
       EventBus.on("building-left", (id) => this.leaveBuilding(id)),
       EventBus.on("go-to-building", (id) => this.goTo(BUILDINGS_BY_ID[id])),
+      EventBus.on("tour-focus", (id) => this.tourFocus(id)),
       EventBus.on("npc-left", (id) => this.leaveConversation(id)),
       EventBus.on("world-season", sink),
       EventBus.on("npc-alerts", (alerts) => {
@@ -141,6 +154,7 @@ export class City extends Phaser.Scene {
     for (const step of this.updaters) step(time, delta);
     for (const walker of this.walkers.values()) walker.update(time);
     if (this.hovered) this.emitHover(this.hovered);
+    if (this.touring) this.emitSpot(this.touring);
     this.player.setDepth(DEPTH.objects + this.player.y);
   }
 
@@ -223,7 +237,7 @@ export class City extends Phaser.Scene {
         sprite.on(Phaser.Input.Events.POINTER_OVER, () => this.hover(building.id));
         sprite.on(Phaser.Input.Events.POINTER_OUT, () => this.hover(null));
         sprite.on(Phaser.Input.Events.POINTER_UP, () => {
-          if (!this.dragging) this.goTo(building);
+          if (this.pressedHere && !this.dragging) this.goTo(building);
         });
         return sprite;
       });
@@ -261,6 +275,44 @@ export class City extends Phaser.Scene {
     box.fillStyle(active ? 0xd9a84c : 0x10293a, 1).fillRect(x, y, w, h);
     box.lineStyle(1, active ? 0xfff0b0 : 0xb8954a, 1).strokeRect(x + 1.5, y + 1.5, w - 3, h - 3);
     text.setColor(active ? "#1a2a33" : "#f2e6c8");
+  }
+
+  /**
+   * Glide to a building for Chelo's tour and light it up, or end the tour: back to the player.
+   * The tour's panel covers the canvas, so nothing here competes with pointer hovers.
+   */
+  private tourFocus(id: BuildingId | null): void {
+    const cam = this.cameras.main;
+    cam.stopFollow();
+    this.touring = id;
+    this.lastSpot = "";
+    if (!id) {
+      this.hover(null);
+      cam.pan(this.player.x, this.player.y, TOUR_PAN, "Sine.easeInOut", true, (_c: unknown, done: number) => {
+        if (done === 1) cam.startFollow(this.player, true, CAMERA_LERP, CAMERA_LERP);
+      });
+      return;
+    }
+    // The building's main (tallest) sprite, the one its name plate stands under.
+    const main = BUILDINGS_BY_ID[id].sprites.reduce((a, b) => (frameRect(b)[3] > frameRect(a)[3] ? b : a));
+    // Sit the building a little above centre, clear of the tour's panel at the bottom.
+    const y = main.y - frameRect(main)[3] / 2 + (cam.height * TOUR_LIFT) / cam.zoom;
+    cam.pan(main.x, y, TOUR_PAN, "Sine.easeInOut", true);
+    this.hover(id);
+    // The panel hides the hover card; React only needs the highlight.
+    EventBus.emit("building-hover", null);
+  }
+
+  /** Where the toured building's middle is on screen. Near the city's edge the camera can't centre it. */
+  private emitSpot(id: BuildingId): void {
+    const cam = this.cameras.main;
+    const main = BUILDINGS_BY_ID[id].sprites.reduce((a, b) => (frameRect(b)[3] > frameRect(a)[3] ? b : a));
+    const x = Math.round((main.x - cam.worldView.x) * cam.zoom);
+    const y = Math.round((main.y - frameRect(main)[3] / 2 - cam.worldView.y) * cam.zoom);
+    const key = `${x},${y}`;
+    if (key === this.lastSpot) return;
+    this.lastSpot = key;
+    EventBus.emit("tour-spot", { x, y });
   }
 
   private hover(id: BuildingId | null): void {
@@ -379,7 +431,7 @@ export class City extends Phaser.Scene {
     NPCS.forEach((npc, i) => {
       const walker = new NpcWalker(this, npc, 101 + i);
       walker.sprite.on(Phaser.Input.Events.POINTER_UP, () => {
-        if (!this.dragging) this.approach(walker);
+        if (this.pressedHere && !this.dragging) this.approach(walker);
       });
       this.walkers.set(npc.id, walker);
     });
@@ -527,6 +579,7 @@ export class City extends Phaser.Scene {
     this.input.on(Phaser.Input.Events.POINTER_DOWN, (p: Phaser.Input.Pointer) => {
       this.press = { x: p.x, y: p.y, scrollX: cam.scrollX, scrollY: cam.scrollY };
       this.dragging = false;
+      this.pressedHere = true;
     });
     this.input.on(Phaser.Input.Events.POINTER_MOVE, (p: Phaser.Input.Pointer) => {
       if (!p.isDown || !this.press) return;
@@ -544,11 +597,15 @@ export class City extends Phaser.Scene {
       Phaser.Input.Events.POINTER_UP,
       (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
         const wasDrag = this.dragging;
+        const pressedHere = this.pressedHere;
         this.press = undefined;
         this.input.setDefaultCursor(CURSORS.default);
-        // Let building handlers see the drag flag first, then reset it.
-        this.time.delayedCall(0, () => (this.dragging = false));
-        if (wasDrag || over.length || this.inside || this.talkingTo) return;
+        // Let building handlers see the flags first, then reset them.
+        this.time.delayedCall(0, () => {
+          this.dragging = false;
+          this.pressedHere = false;
+        });
+        if (!pressedHere || wasDrag || over.length || this.inside || this.talkingTo) return;
         this.hopTo({ x: p.worldX, y: p.worldY });
       },
     );

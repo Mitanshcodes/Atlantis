@@ -1139,3 +1139,169 @@
     position: static;
   }
 }
+
+/* --- Step 3: the story, one cinematic screen --------------------------------------------------- */
+
+.cine {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #02070c;
+  cursor: var(--cursor-default, auto);
+}
+
+/* The drowned city, far below and very dark, drifting slowly closer. */
+.cine__sea {
+  position: absolute;
+  inset: -4%;
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(2, 7, 12, 0.35), rgba(2, 7, 12, 0.92) 70%),
+    url(/assets/opening/title/title_scene.png) center / cover no-repeat;
+  filter: saturate(0.6) brightness(0.55);
+  image-rendering: pixelated;
+  animation: cine-drift 40s ease-out forwards;
+}
+
+@keyframes cine-drift {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+
+.cine__bubbles i {
+  position: absolute;
+  bottom: -20px;
+  width: 6px;
+  height: 6px;
+  border: 1px solid rgba(158, 232, 223, 0.5);
+  border-radius: 50%;
+  animation: cine-rise 9s linear infinite;
+}
+
+@keyframes cine-rise {
+  to {
+    transform: translate(18px, -110vh);
+    opacity: 0;
+  }
+}
+
+.cine__text {
+  position: relative;
+  width: min(1000px, calc(100% - 48px));
+  text-align: center;
+}
+
+.cine__line {
+  margin: 0 0 18px;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: clamp(22px, 2.6vw, 36px);
+  line-height: 1.3;
+  color: #e9f4f2;
+  text-shadow: 0 0 24px rgba(41, 168, 176, 0.35), 0 2px 0 #000;
+  max-height: 240px;
+  overflow: hidden;
+  transition: opacity 0.8s, color 0.8s, max-height 0.9s ease, margin 0.9s ease;
+}
+
+.cine__line.is-gone {
+  max-height: 0;
+  margin: 0;
+  opacity: 0;
+}
+
+.cine__line.is-past {
+  opacity: 0.38;
+}
+
+.cine__line--big {
+  margin: 10px 0 26px;
+  font-size: clamp(32px, 4.4vw, 62px);
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+.cine__line--gold {
+  margin-top: 14px;
+  font-size: clamp(26px, 3.2vw, 44px);
+  color: var(--gold-light);
+  text-shadow: 0 0 28px rgba(242, 205, 110, 0.45), 0 2px 0 #000;
+}
+
+.cine__caret {
+  display: inline-block;
+  width: 0.08em;
+  height: 0.9em;
+  margin-left: 4px;
+  vertical-align: -0.08em;
+  background: currentColor;
+  animation: cine-blink 0.9s steps(1) infinite;
+}
+
+@keyframes cine-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.cine__skip {
+  position: absolute;
+  top: 28px;
+  right: 36px;
+}
+
+.cine__back {
+  position: absolute;
+  top: 34px;
+  left: 36px;
+  padding: 0;
+  font: inherit;
+  font-size: 15px;
+  color: rgba(233, 244, 242, 0.6);
+  background: none;
+  border: 0;
+  cursor: var(--cursor-hover, pointer);
+}
+
+.cine__foot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 26px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.8s, transform 0.8s;
+}
+
+.cine__foot.is-shown {
+  opacity: 1;
+  transform: none;
+}
+
+.cine__sail {
+  font-size: 18px;
+  padding: 14px 28px;
+}
+
+.cine__hint {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(233, 244, 242, 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cine__sea,
+  .cine__bubbles i,
+  .cine__caret {
+    animation: none;
+  }
+}

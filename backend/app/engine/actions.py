@@ -148,6 +148,15 @@ class InvestPearlExchange:
 
 
 @dataclass(frozen=True)
+class Gamble:
+    """One of Nerissa's games at the Drowned Bell. ``pick`` is the shell (1-3) for the shell game."""
+
+    game: str
+    stake: int
+    pick: Optional[int] = None
+
+
+@dataclass(frozen=True)
 class BuyPassage:
     pass
 

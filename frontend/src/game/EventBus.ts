@@ -28,6 +28,13 @@ export interface GameEvents {
   "npc-talk": [id: NpcId];
   /** React closed the conversation; they go back to pottering about. */
   "npc-left": [id: NpcId];
+  /**
+   * Chelo's tour: glide the camera to a building and light it up, or (null) end the tour and
+   * hand the camera back to the player.
+   */
+  "tour-focus": [id: BuildingId | null];
+  /** Where the toured building is on screen (px), re-sent as the camera glides, for the spotlight. */
+  "tour-spot": [at: { x: number; y: number }];
   /** Who has something new to say, worked out by React from the engine state. */
   "npc-alerts": [alerts: Partial<Record<NpcId, boolean>>];
   /** The season (0 Spring to 3 the Long Dark): the city darkens as Atlantis sinks. */

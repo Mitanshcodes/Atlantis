@@ -5,7 +5,7 @@ import { NPCS, NPCS_BY_ID, type NpcId } from "./game/npcs";
 import { PhaserGame } from "./game/PhaserGame";
 import { useBanking } from "./store";
 import { BuildingCard } from "./ui/BuildingCard";
-import { Chronicle } from "./ui/Chronicle";
+import { ReportCard } from "./ui/ReportCard";
 import { DEMO_RUN } from "./ui/demoRun";
 import { Dialogue } from "./ui/Dialogue";
 import { LedgerDrawer } from "./ui/Drawers";
@@ -15,6 +15,7 @@ import { Hud } from "./ui/Hud";
 import { Opening, type OpeningStep } from "./ui/opening/Opening";
 import { BuildingRoom } from "./ui/rooms";
 import { ScrollsDrawer } from "./ui/Scrolls";
+import { Tour, toured } from "./ui/Tour";
 import { momentsOf, viewOf, type Moment } from "./ui/view";
 import { NpcDialogue } from "./ui/NpcDialogue";
 import { talk, type Choice } from "./ui/npcTalk";
@@ -25,11 +26,21 @@ interface Hover {
   anchor: { x: number; y: number };
 }
 
-/** What waits to be shown, in the order it happened: cards, and the Chronicle where a season ended. */
-type Beat = { type: "card"; moment: Moment } | { type: "chronicle"; season: string };
+/** What waits to be shown, in the order it happened: cards, and the report where a season ended. */
+type Beat = { type: "card"; moment: Moment } | { type: "report"; season: string };
 
-/** Moments worth stopping the player for. Season ends open the Chronicle instead. */
-const CARD_KINDS = new Set(["event", "scroll", "debasement", "clue", "passage_bought", "fraud_lost", "scam_revealed", "card_frozen"]);
+/** Moments worth stopping the player for. Season ends open the season report instead. */
+const CARD_KINDS = new Set([
+  "event",
+  "market_shock",
+  "scroll",
+  "debasement",
+  "clue",
+  "passage_bought",
+  "fraud_lost",
+  "scam_revealed",
+  "card_frozen",
+]);
 
 /** Buildings that are engine Places: walking in is a free Visit, which the event deck notices. */
 const PLACES: Partial<Record<BuildingId, string>> = {
@@ -40,7 +51,7 @@ const PLACES: Partial<Record<BuildingId, string>> = {
   black_reef: "black_reef",
 };
 
-/** The city with the game layered over it: opening, rooms, townsfolk, event cards, Chronicle, ending. */
+/** The city with the game layered over it: opening, tour, rooms, townsfolk, event cards, reports, ending. */
 export function App() {
   const bank = useBanking();
   const { run, busy, error, act } = bank;
@@ -53,6 +64,8 @@ export function App() {
   const [drawer, setDrawer] = useState<"ledger" | "scrolls" | null>(null);
   // Every visit opens on the title; Continue resumes the saved journey.
   const [opening, setOpening] = useState<OpeningStep | null>("title");
+  // Chelo's tour of the city: once, after the first Set sail; again from the HUD's Guide.
+  const [touring, setTouring] = useState(false);
   const seen = useRef<{ id: string; version: number } | null>(null);
   // ?demo shows the HUD over a sample run, for layout checks without a backend.
   const demo = useMemo(() => new URLSearchParams(window.location.search).has("demo"), []);
@@ -114,11 +127,11 @@ export function App() {
     const prev = seen.current;
     seen.current = { id: run.run_id, version: run.state.version };
     if (!prev || prev.id !== run.run_id || run.state.version <= prev.version) return;
-    // A move that ends a season also opens the next: the old season's cards, then its Chronicle,
+    // A move that ends a season also opens the next: the old season's cards, then its report,
     // then whatever the new season opened with (a debasement, a clue).
     const fresh: Beat[] = momentsOf(run.state).flatMap((m): Beat[] =>
       m.kind === "season_end" && m.season
-        ? [{ type: "chronicle", season: m.season }]
+        ? [{ type: "report", season: m.season }]
         : CARD_KINDS.has(m.kind)
           ? [{ type: "card", moment: m }]
           : [],
@@ -181,9 +194,15 @@ export function App() {
     <div className="app">
       <PhaserGame />
       {shown && phase !== "ended" && (
-        <Hud run={shown} ledger={bank.ledger} onLedger={() => setDrawer("ledger")} onScrolls={() => setDrawer("scrolls")} />
+        <Hud
+          run={shown}
+          ledger={bank.ledger}
+          onLedger={() => setDrawer("ledger")}
+          onScrolls={() => setDrawer("scrolls")}
+          onGuide={run ? () => (leave(), leaveNpc(), setTouring(true)) : undefined}
+        />
       )}
-      {hover && !inside && !card && !talkingTo && (
+      {hover && !inside && !card && !talkingTo && !touring && (
         <BuildingCard building={BUILDINGS_BY_ID[hover.id]} anchor={hover.anchor} freeVisit={freeVisit(hover.id)} />
       )}
 
@@ -211,7 +230,8 @@ export function App() {
           onGo={goTo}
         />
       )}
-      {run && beat?.type === "chronicle" && <Chronicle run={run} season={beat.season} onDone={nextBeat} />}
+      {run && beat?.type === "report" && <ReportCard run={run} season={beat.season} onDone={nextBeat} />}
+      {run && touring && !opening && !beat && phase !== "ended" && <Tour onDone={() => setTouring(false)} />}
       {run && !beat && !inside && phase === "final_call" && (
         <FinalCall run={run} busy={busy} act={act} onBank={() => goTo("bank")} />
       )}
@@ -230,7 +250,10 @@ export function App() {
           onContinue={() => setOpening(null)}
           onSail={async (classId) => {
             const created = await bank.create(classId);
-            if (created) setOpening(null);
+            if (created) {
+              setOpening(null);
+              if (!toured()) setTouring(true);
+            }
             return created;
           }}
         />

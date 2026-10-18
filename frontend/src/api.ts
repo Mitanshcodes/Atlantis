@@ -1,4 +1,5 @@
 import type { Action, ClassId, Ledger, Run } from './types';
+import type { SeasonReport } from './ui/report';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); }
@@ -21,4 +22,11 @@ export const api = {
   chronicle: (id: string, season: string) =>
     request<{ text: string; source: 'gemini' | 'template' }>(
       `/runs/${encodeURIComponent(id)}/chronicle?season=${encodeURIComponent(season)}`),
+  /** The season's report card (whole coin, not hundredths). */
+  report: (id: string, season: string) =>
+    request<SeasonReport>(`/runs/${encodeURIComponent(id)}/report?season=${encodeURIComponent(season)}`),
+  /** Chelo's feedback on the report, as bullets: OpenAI, or hand-written. */
+  reportNote: (id: string, season: string) =>
+    request<{ bullets: string[]; source: 'openai' | 'template' }>(
+      `/runs/${encodeURIComponent(id)}/report/note?season=${encodeURIComponent(season)}`),
 };
